@@ -1,61 +1,69 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Search, User, LogOut, Heart, ClipboardList, Menu, X } from 'lucide-react'
+import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Search,
+  User,
+  LogOut,
+  Heart,
+  ClipboardList,
+  Menu,
+  X,
+  ShieldCheck,
+} from 'lucide-react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { CartSheet } from '@/components/cart/CartSheet'
-import { useAuthStore } from '@/lib/store/auth.store'
-
-const MOCK_USER = {
-  name: 'João Silva',
-  email: 'joao@email.com',
-  image: '',
-}
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CartSheet } from '@/components/cart/CartSheet';
 
 export function Header() {
-  const router = useRouter()
-  const { isLoggedIn, user, login, logout } = useAuthStore()
-  const [search, setSearch] = useState('')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const isLoggedIn = !!session;
+
+  const isAdmin = user?.isAdmin;
+  const [search, setSearch] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    if (!search.trim()) return
-    const params = new URLSearchParams(window.location.search)
-    params.set('search', search.trim())
-    router.push(`/?${params.toString()}`)
-  }
-
-  function handleLogin() {
-    login(MOCK_USER)
+    e.preventDefault();
+    if (!search.trim()) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('search', search.trim());
+    router.push(`/?${params.toString()}`);
   }
 
   function handleLogout() {
-    logout()
-    router.push('/')
+    signOut({ callbackUrl: '/' });
   }
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-[var(--color-border)] shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 flex items-center gap-1.5">
-          <span className="text-2xl font-black tracking-tight text-[var(--color-brand)]">food</span>
-          <span className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">app</span>
+          <span className="text-2xl font-black tracking-tight text-[var(--color-brand)]">
+            food
+          </span>
+          <span className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+            app
+          </span>
         </Link>
 
         {/* Search desktop */}
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-4">
+        <form
+          onSubmit={handleSearch}
+          className="hidden md:flex flex-1 max-w-xl mx-4"
+        >
           <div className="relative w-full">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
             <input
@@ -70,7 +78,6 @@ export function Header() {
 
         {/* Ações */}
         <div className="ml-auto flex items-center gap-2">
-
           {isLoggedIn && <CartSheet />}
 
           {isLoggedIn ? (
@@ -88,22 +95,51 @@ export function Header() {
                   </span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuContent align="end" className="w-52 bg-white">
                 <div className="px-3 py-2">
                   <p className="text-sm font-semibold">{user?.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">{user?.email}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {user?.email}
+                  </p>
+                  {isAdmin && (
+                    <span className="inline-flex items-center gap-1 mt-1.5 rounded-full bg-[var(--color-brand)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--color-brand)]">
+                      <ShieldCheck className="h-3 w-3" />
+                      Administrador
+                    </span>
+                  )}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <Heart className="h-4 w-4" /> Favoritos
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/profile?tab=orders" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/profile?tab=orders"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <ClipboardList className="h-4 w-4" /> Meus pedidos
                   </Link>
                 </DropdownMenuItem>
+
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/admin"
+                        className="flex items-center gap-2 cursor-pointer font-medium text-[var(--color-brand)]"
+                      >
+                        <ShieldCheck className="h-4 w-4" /> Painel Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}
@@ -115,7 +151,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <button
-              onClick={handleLogin}
+              onClick={() => signIn('google')}
               className="flex items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] transition-colors"
             >
               <User className="h-4 w-4" />
@@ -127,7 +163,11 @@ export function Header() {
             className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-[var(--color-border)]"
             onClick={() => setMobileMenuOpen((v) => !v)}
           >
-            {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {mobileMenuOpen ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Menu className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
@@ -150,5 +190,5 @@ export function Header() {
         </div>
       )}
     </header>
-  )
+  );
 }
