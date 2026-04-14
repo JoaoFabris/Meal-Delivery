@@ -75,9 +75,15 @@ export function Header() {
             />
           </div>
         </form>
-
         {/* Ações */}
         <div className="ml-auto flex items-center gap-2">
+          {isAdmin && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-brand)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--color-brand)]">
+              <ShieldCheck className="h-5 w-5" />
+              Admin
+            </span>
+          )}
+
           {isLoggedIn && <CartSheet />}
 
           {isLoggedIn ? (
@@ -166,17 +172,6 @@ export function Header() {
               <span>Entrar</span>
             </button>
           )}
-
-          <button
-            className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-[var(--color-border)]"
-            onClick={() => setMobileMenuOpen((v) => !v)}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-4 w-4" />
-            ) : (
-              <Menu className="h-4 w-4" />
-            )}
-          </button>
         </div>
       </div>
 
