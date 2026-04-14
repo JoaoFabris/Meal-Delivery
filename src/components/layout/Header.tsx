@@ -84,12 +84,20 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full p-0.5 hover:ring-2 hover:ring-[var(--color-brand)]/30 transition-all">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.image ?? ''} />
-                    <AvatarFallback className="bg-[var(--color-brand)] text-white text-xs font-bold">
-                      {user?.name?.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  {user?.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name ?? ''}
+                      className="h-8 w-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-[var(--color-brand)] text-white text-xs font-bold">
+                        {user?.name?.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   <span className="hidden sm:block text-sm font-medium pr-1">
                     {user?.name?.split(' ')[0]}
                   </span>

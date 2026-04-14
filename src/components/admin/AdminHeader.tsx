@@ -56,7 +56,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         </div>
 
         <button
-          onClick={() => signOut({ callbackUrl: '/admin/login' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
         >
           <LogOut className="h-4 w-4" />
