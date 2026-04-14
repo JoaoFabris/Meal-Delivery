@@ -6,7 +6,7 @@ import { ShoppingCart, Check, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { QuantitySelector } from './QuantitySelector'
 import { useCartStore } from '@/lib/store/cart.store'
-import { useAuthStore } from '@/lib/store/auth.store'
+import { useSession, signIn } from 'next-auth/react'
 import { Meal } from '@/types/meal.types'
 import { formatPrice } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -19,13 +19,13 @@ export function AddToCartButton({ meal }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const { addItem } = useCartStore()
-  const { isLoggedIn } = useAuthStore()
+  const { data: session } = useSession()
+  const isLoggedIn = !!session
   const router = useRouter()
 
   const total = meal.price * quantity
 
   function handleAdd() {
-    // Usuário não logado — bloqueia e avisa
     if (!isLoggedIn) {
       toast.error('Faça login para adicionar ao carrinho', {
         description: 'Clique em "Entrar" no topo da página.',
@@ -44,16 +44,11 @@ export function AddToCartButton({ meal }: AddToCartButtonProps) {
     }, 1200)
   }
 
-  // Se não logado — mostra botão de login no lugar
   if (!isLoggedIn) {
     return (
       <div className="space-y-3">
         <Button
-          onClick={() => {
-            // Scroll suave até o Header onde fica o botão de login
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-            toast('Clique em "Entrar" no topo da página 👆', { icon: '🔒' })
-          }}
+          onClick={() => signIn('google')}
           variant="outline"
           className="w-full h-12 text-base font-semibold rounded-2xl border-2 border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-brand)] hover:text-white transition-all gap-2"
         >
@@ -66,7 +61,6 @@ export function AddToCartButton({ meal }: AddToCartButtonProps) {
 
   return (
     <div className="space-y-5">
-      {/* Seletor de quantidade */}
       <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border)]">
         <div>
           <p className="text-xs text-[var(--color-text-muted)] mb-0.5">Quantidade</p>
@@ -85,7 +79,6 @@ export function AddToCartButton({ meal }: AddToCartButtonProps) {
         </div>
       </div>
 
-      {/* Botão adicionar */}
       <Button
         onClick={handleAdd}
         disabled={added}
