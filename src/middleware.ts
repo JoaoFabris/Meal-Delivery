@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 
-export default auth((req) => { // ✅ Sem tipagem explícita — inferido pelo auth()
+export default auth((req) => {
   const { pathname } = req.nextUrl
   const isAdminRoute = pathname.startsWith('/admin')
   const isProtectedUserRoute =
@@ -16,7 +16,7 @@ export default auth((req) => { // ✅ Sem tipagem explícita — inferido pelo a
     return NextResponse.next()
   }
 
-  // ✅ Usuário já logado tentando acessar /login → vai para home
+  //  Usuário já logado tentando acessar /login  vai para home
   if (isUserLogin && req.auth) {
     return NextResponse.redirect(new URL('/', req.url))
   }
@@ -31,7 +31,7 @@ export default auth((req) => { // ✅ Sem tipagem explícita — inferido pelo a
   }
 
   if (isProtectedUserRoute && !req.auth) {
-    return NextResponse.redirect(new URL('/login', req.url)) // ✅ Redireciona para login de usuário
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return NextResponse.next()
