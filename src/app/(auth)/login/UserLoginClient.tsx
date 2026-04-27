@@ -1,20 +1,96 @@
 'use client'
 
+import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
-import { UtensilsCrossed } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { UtensilsCrossed, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import Link from 'next/link'
 
 export function UserLoginClient() {
     const searchParams = useSearchParams()
+    const router = useRouter()
     const callbackUrl = searchParams.get('callbackUrl') ?? '/'
+
+    // ── Estado do formulário ───────────────────────────────
+    const [mode, setMode] = useState<'login' | 'register'>('login')
+    const [showPassword, setShowPassword] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [form, setForm] = useState({ name: '', email: '', password: '' })
+
+    function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+        setError(null)
+    }
+
+    // ── Registro via API REST ──────────────────────────────
+    async function handleRegister(e: React.FormEvent) {
+        e.preventDefault()
+        setLoading(true)
+        setError(null)
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: form.name,
+                    email: form.email,
+                    password: form.password,
+                }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                setError(data.error?.message ?? 'Erro ao criar conta.')
+                return
+            }
+
+            // Após registrar, faz login automático via NextAuth
+            await signIn('credentials', {
+                email: form.email,
+                password: form.password,
+                callbackUrl,
+                redirect: true,
+            })
+        } catch {
+            setError('Erro de conexão. Tente novamente.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // ── Login via NextAuth Credentials ────────────────────
+    async function handleLogin(e: React.FormEvent) {
+        e.preventDefault()
+        setLoading(true)
+        setError(null)
+
+        const result = await signIn('credentials', {
+            email: form.email,
+            password: form.password,
+            callbackUrl,
+            redirect: false,
+        })
+
+        setLoading(false)
+
+        if (result?.error) {
+            setError('E-mail ou senha inválidos.')
+            return
+        }
+
+        router.push(callbackUrl)
+    }
 
     return (
         <div className="min-h-screen flex">
 
             {/* Banner lateral */}
             <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--color-brand)] flex-col justify-between p-12">
-                {/* Padrão decorativo de fundo */}
                 <div
                     className="absolute inset-0 opacity-10"
                     style={{
@@ -22,12 +98,9 @@ export function UserLoginClient() {
                         backgroundSize: '32px 32px',
                     }}
                 />
-
-                {/* Círculos decorativos */}
                 <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white opacity-5" />
                 <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-white opacity-5" />
 
-                {/* Logo no topo */}
                 <div className="relative flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
                         <UtensilsCrossed className="h-5 w-5 text-white" />
@@ -35,7 +108,6 @@ export function UserLoginClient() {
                     <span className="text-white font-black text-xl tracking-tight">FoodApp</span>
                 </div>
 
-                {/* Texto principal */}
                 <div className="relative space-y-6">
                     <h2 className="text-4xl font-black text-white leading-tight">
                         Peça suas<br />refeições favoritas<br />com facilidade.
@@ -43,8 +115,6 @@ export function UserLoginClient() {
                     <p className="text-white/70 text-base leading-relaxed max-w-xs">
                         Explore centenas de receitas, salve seus favoritos e acompanhe seus pedidos em um só lugar.
                     </p>
-
-                    {/* Destaques */}
                     <div className="space-y-3 pt-2">
                         {[
                             'Favoritos salvos na sua conta',
@@ -63,7 +133,6 @@ export function UserLoginClient() {
                     </div>
                 </div>
 
-                {/* Rodapé do banner */}
                 <p className="relative text-white/40 text-xs">
                     © {new Date().getFullYear()} FoodApp. Todos os direitos reservados.
                 </p>
@@ -71,9 +140,9 @@ export function UserLoginClient() {
 
             {/* Painel de login */}
             <div className="flex-1 flex items-center justify-center bg-[var(--color-surface-2)] px-6 py-12">
-                <div className="w-full max-w-sm space-y-8">
+                <div className="w-full max-w-sm space-y-6">
 
-                    {/* Header (visível só no mobile — no desktop o banner já tem) */}
+                    {/* Header mobile */}
                     <div className="lg:hidden text-center space-y-2">
                         <div className="flex justify-center">
                             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-brand)] shadow-lg">
@@ -81,21 +150,142 @@ export function UserLoginClient() {
                             </div>
                         </div>
                         <h1 className="text-2xl font-black">FoodApp</h1>
-                        <p className="text-sm text-[var(--color-text-muted)]">
-                            Faça login para continuar
-                        </p>
                     </div>
 
-                    {/* Título no desktop */}
+                    {/* Título desktop */}
                     <div className="hidden lg:block space-y-1">
-                        <h1 className="text-2xl font-black">Bem-vindo de volta</h1>
+                        <h1 className="text-2xl font-black">
+                            {mode === 'login' ? 'Bem-vindo de volta' : 'Criar conta'}
+                        </h1>
                         <p className="text-sm text-[var(--color-text-muted)]">
-                            Entre na sua conta para continuar
+                            {mode === 'login'
+                                ? 'Entre na sua conta para continuar'
+                                : 'Preencha seus dados para começar'}
                         </p>
                     </div>
 
-                    {/* Card de login */}
-                    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 space-y-3 shadow-sm">
+                    {/* Card principal */}
+                    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 space-y-4 shadow-sm">
+
+                        {/* Toggle login / registro */}
+                        <div className="flex rounded-xl border border-[var(--color-border)] p-1 gap-1">
+                            <button
+                                onClick={() => { setMode('login'); setError(null) }}
+                                className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all ${mode === 'login'
+                                    ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                                    }`}
+                            >
+                                Entrar
+                            </button>
+                            <button
+                                onClick={() => { setMode('register'); setError(null) }}
+                                className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all ${mode === 'register'
+                                    ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                                    }`}
+                            >
+                                Criar conta
+                            </button>
+                        </div>
+
+                        {/* Formulário e-mail/senha */}
+                        <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-3">
+                            {mode === 'register' && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-[var(--color-text-muted)]">Nome</label>
+                                    <Input
+                                        name="name"
+                                        type="text"
+                                        placeholder="Seu nome completo"
+                                        value={form.name}
+                                        onChange={handleChange}
+                                        required
+                                        className="h-10 rounded-xl"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-[var(--color-text-muted)]">E-mail</label>
+                                <Input
+                                    name="email"
+                                    type="email"
+                                    placeholder="seu@email.com"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    required
+                                    className="h-10 rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-[var(--color-text-muted)]">Senha</label>
+                                <div className="relative">
+                                    <Input
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Mínimo 6 caracteres"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        required
+                                        minLength={6}
+                                        className="h-10 rounded-xl pr-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {mode === 'login' && (
+                                <div className="flex justify-end">
+                                    <Link
+                                        href="/forgot-password"
+                                        className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors"
+                                    >
+                                        Esqueceu sua senha?
+                                    </Link>
+                                </div>
+                            )}
+
+
+                            {/* Mensagem de erro */}
+                            {error && (
+                                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                                    {error}
+                                </p>
+                            )}
+
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full h-10 rounded-xl font-medium bg-[var(--color-brand)] hover:opacity-90 transition-opacity"
+                            >
+                                {loading
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : mode === 'login' ? 'Entrar' : 'Criar conta'}
+                            </Button>
+                        </form>
+
+                        {/* Divisor */}
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-[var(--color-border)]" />
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-white px-3 text-xs text-[var(--color-text-muted)]">
+                                    ou continue com
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Login Google */}
                         <Button
                             onClick={() => signIn('google', { callbackUrl })}
                             variant="outline"
@@ -111,19 +301,8 @@ export function UserLoginClient() {
                         </Button>
                     </div>
 
-                    {/* Separador e link admin */}
+                    {/* Link admin */}
                     <div className="space-y-4">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-[var(--color-border)]" />
-                            </div>
-                            <div className="relative flex justify-center">
-                                <span className="bg-[var(--color-surface-2)] px-3 text-xs text-[var(--color-text-muted)]">
-                                    ou
-                                </span>
-                            </div>
-                        </div>
-
                         <p className="text-center text-xs text-[var(--color-text-muted)]">
                             É administrador?{' '}
                             <a
