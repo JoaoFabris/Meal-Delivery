@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CartSheet } from '@/components/cart/CartSheet';
 
+
 export function Header() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -164,13 +165,13 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <button
-              onClick={() => signIn('google')}
+            <Link
+              href="/login"
               className="flex items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] transition-colors"
             >
               <User className="h-4 w-4" />
               <span>Entrar</span>
-            </button>
+            </Link>
           )}
         </div>
       </div>
