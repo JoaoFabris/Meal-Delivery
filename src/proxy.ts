@@ -1,8 +1,10 @@
-import { auth } from '@/lib/auth'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
-export default auth((req) => {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET })
+
   const isAdminRoute = pathname.startsWith('/admin')
   const isProtectedUserRoute =
     pathname.startsWith('/cart') || pathname.startsWith('/profile')
@@ -10,32 +12,25 @@ export default auth((req) => {
   const isUserLogin = pathname === '/login'
 
   if (isAdminLogin) {
-    if (req.auth?.user?.isAdmin) {
-      return NextResponse.redirect(new URL('/admin', req.url))
-    }
+    if (token?.isAdmin) return NextResponse.redirect(new URL('/admin', req.url))
     return NextResponse.next()
   }
 
-  //  Usuário já logado tentando acessar /login  vai para home
-  if (isUserLogin && req.auth) {
+  if (isUserLogin && token) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
   if (isAdminRoute) {
-    if (!req.auth) {
-      return NextResponse.redirect(new URL('/admin/login', req.url))
-    }
-    if (!req.auth.user?.isAdmin) {
-      return NextResponse.redirect(new URL('/admin/login?error=unauthorized', req.url))
-    }
+    if (!token) return NextResponse.redirect(new URL('/admin/login', req.url))
+    if (!token.isAdmin) return NextResponse.redirect(new URL('/admin/login?error=unauthorized', req.url))
   }
 
-  if (isProtectedUserRoute && !req.auth) {
+  if (isProtectedUserRoute && !token) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: [
@@ -43,6 +38,6 @@ export const config = {
     '/admin/:path*',
     '/cart/:path*',
     '/profile/:path*',
-    '/login',  
+    '/login',
   ],
 }
