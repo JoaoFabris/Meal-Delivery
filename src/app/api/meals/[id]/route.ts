@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/middleware/auth";
-import { handleApiError } from "@/lib/middleware/errorHandler";
-import { updateMealSchema } from "@/lib/validations";
-import { NotFoundError } from "@/lib/errors";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/middleware/auth';
+import { handleApiError } from '@/lib/middleware/errorHandler';
+import { updateMealSchema } from '@/lib/validations';
+import { NotFoundError } from '@/lib/errors';
 
-type RouteParams = { params: { id: string } };
+type RouteParams = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/meals/:id
@@ -13,9 +13,10 @@ type RouteParams = { params: { id: string } };
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const meal = await prisma.meal.findUnique({ where: { id: params.id } });
+    const { id } = await params;
+    const meal = await prisma.meal.findUnique({ where: { id } });
 
-    if (!meal) throw new NotFoundError("Prato");
+    if (!meal) throw new NotFoundError('Prato');
 
     return NextResponse.json({ meal });
   } catch (error) {
@@ -31,15 +32,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     requireAdmin(request);
 
-    const existing = await prisma.meal.findUnique({ where: { id: params.id } });
-    if (!existing) throw new NotFoundError("Prato");
+    const { id } = await params;
+    const existing = await prisma.meal.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError('Prato');
 
     const body = await request.json();
     const data = updateMealSchema.parse(body);
 
-    const meal = await prisma.meal.update({ where: { id: params.id }, data });
+    const meal = await prisma.meal.update({ where: { id }, data });
 
-    return NextResponse.json({ message: "Prato atualizado com sucesso.", meal });
+    return NextResponse.json({
+      message: 'Prato atualizado com sucesso.',
+      meal,
+    });
   } catch (error) {
     return handleApiError(error);
   }
@@ -53,12 +58,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     requireAdmin(request);
 
-    const existing = await prisma.meal.findUnique({ where: { id: params.id } });
-    if (!existing) throw new NotFoundError("Prato");
+    const { id } = await params;
+    const existing = await prisma.meal.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError('Prato');
 
-    await prisma.meal.delete({ where: { id: params.id } });
+    await prisma.meal.delete({ where: { id } });
 
-    return NextResponse.json({ message: "Prato removido com sucesso." });
+    return NextResponse.json({ message: 'Prato removido com sucesso.' });
   } catch (error) {
     return handleApiError(error);
   }

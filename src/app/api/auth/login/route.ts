@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
-import { generateToken } from "@/lib/middleware/auth";
-import { handleApiError } from "@/lib/middleware/errorHandler";
-import { loginSchema } from "@/lib/validations";
-import { UnauthorizedError } from "@/lib/errors";
+import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
+import { generateToken } from '@/lib/middleware/auth';
+import { handleApiError } from '@/lib/middleware/errorHandler';
+import { loginSchema } from '@/lib/validations';
+import { UnauthorizedError } from '@/lib/errors';
 
 /**
  * POST /api/auth/login
@@ -24,14 +24,21 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // Mensagem genérica para não revelar se o e-mail existe
-      throw new UnauthorizedError("E-mail ou senha inválidos.");
+      throw new UnauthorizedError('E-mail ou senha inválidos.');
+    }
+
+    // Usuários OAuth não possuem senha local
+    if (!user.password) {
+      throw new UnauthorizedError(
+        'Esta conta utiliza login via OAuth. Faça login com o provedor correspondente.',
+      );
     }
 
     // Verifica a senha com bcrypt
     const passwordMatch = await bcrypt.compare(data.password, user.password);
 
     if (!passwordMatch) {
-      throw new UnauthorizedError("E-mail ou senha inválidos.");
+      throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
 
     // Gera o token JWT
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      message: "Login realizado com sucesso.",
+      message: 'Login realizado com sucesso.',
       user: {
         id: user.id,
         name: user.name,
