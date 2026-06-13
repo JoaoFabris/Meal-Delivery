@@ -32,7 +32,7 @@ export function CartSheet() {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <button className="relative flex items-center gap-2 rounded-full bg-white border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:border-[var(--color-brand)] transition-colors">
+                <button className="relative flex items-center gap-2 rounded-full bg-red border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:border-[var(--color-brand)] transition-colors">
                     <ShoppingBag className="h-4 w-4" />
                     <span className="hidden sm:inline">Carrinho</span>
                     {count > 0 && (
