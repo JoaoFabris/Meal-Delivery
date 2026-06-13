@@ -13,6 +13,7 @@ const STATUS_MAP = {
     pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
     confirmed: { label: 'Confirmado', color: 'bg-green-100 text-green-700 border-green-200' },
     delivered: { label: 'Entregue', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-700 border-red-200' },
 }
 
 function OrderCard({ order }: { order: Order }) {
