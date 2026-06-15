@@ -4,11 +4,15 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { handleApiError } from '@/lib/middleware/errorHandler';
 import { createOrderSchema } from '@/lib/validations';
 import { ValidationError } from '@/lib/errors';
-//
+
+interface MealData {
+  id: string;
+  price: number;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const currentUser = requireAuth(request);
-
     const orders = await prisma.order.findMany({
       where: currentUser.role === 'ADMIN' ? {} : { userId: currentUser.userId },
       include: {
@@ -23,7 +27,6 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: 'desc' },
     });
-
     return NextResponse.json({ orders, total: orders.length });
   } catch (error) {
     return handleApiError(error);
@@ -33,13 +36,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const currentUser = requireAuth(request);
-
     const body = await request.json();
     const data = createOrderSchema.parse(body);
 
     const mealIds = data.items.map((item) => item.mealId);
     const meals = await prisma.meal.findMany({
       where: { id: { in: mealIds }, available: true },
+      select: { id: true, price: true },
     });
 
     if (meals.length !== mealIds.length) {
@@ -48,22 +51,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const mealMap = new Map(
-      meals.map((m: { id: string; price: number; [key: string]: unknown }) => [
-        m.id,
-        m,
-      ]),
-    );
+    const mealMap = new Map<string, MealData>(meals.map((m) => [m.id, m]));
     let total = 0;
 
     const orderItems = data.items.map((item) => {
       const meal = mealMap.get(item.mealId)!;
-      const itemTotal = (meal.price as number) * item.quantity;
+      const itemTotal = meal.price * item.quantity;
       total += itemTotal;
       return {
         mealId: item.mealId,
         quantity: item.quantity,
-        price: meal.price as number,
+        price: meal.price,
       };
     });
 
