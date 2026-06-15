@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AppError } from '@/lib/errors';
 import { ZodError } from 'zod';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export interface ApiErrorResponse {
   error: {
@@ -11,12 +11,7 @@ export interface ApiErrorResponse {
   };
 }
 
-/**
- * handleApiError — Middleware global de tratamento de erros.
- * Centraliza e padroniza todas as respostas de erro da API.
- */
 export function handleApiError(error: unknown): NextResponse<ApiErrorResponse> {
-  // Erros de validação com Zod
   if (error instanceof ZodError) {
     return NextResponse.json(
       {
@@ -33,7 +28,6 @@ export function handleApiError(error: unknown): NextResponse<ApiErrorResponse> {
     );
   }
 
-  // Erros customizados da aplicação (AppError e subclasses)
   if (error instanceof AppError) {
     return NextResponse.json(
       {
@@ -46,8 +40,7 @@ export function handleApiError(error: unknown): NextResponse<ApiErrorResponse> {
     );
   }
 
-  // Erros do Prisma — violação de constraint única (ex: email duplicado)
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  if (error instanceof PrismaClientKnownRequestError) {
     if (error.code === 'P2002') {
       return NextResponse.json(
         {
@@ -73,7 +66,6 @@ export function handleApiError(error: unknown): NextResponse<ApiErrorResponse> {
     }
   }
 
-  // Erro interno inesperado — loga para auditoria
   console.error('[API ERROR]', new Date().toISOString(), error);
 
   return NextResponse.json(
