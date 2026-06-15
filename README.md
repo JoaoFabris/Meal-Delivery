@@ -1,8 +1,8 @@
 # 🍔 FoodApp
 
-Aplicação full-stack de pedidos de refeições desenvolvida como parte da **Atividade 2 — PPE III**.
+Aplicação full-stack de pedidos de refeições desenvolvida como parte das **Atividades 2 e 3 — PPE III**.
 
-Combina uma interface web moderna com uma API RESTful completa, autenticação dupla (Google OAuth + e-mail/senha com JWT), banco de dados PostgreSQL via Prisma ORM, recuperação de senha por e-mail e controle de acesso por papel (USER / ADMIN).
+Combina uma interface web moderna com uma API RESTful completa, autenticação dupla (Google OAuth + e-mail/senha com JWT), banco de dados PostgreSQL via Prisma ORM, recuperação de senha por e-mail, controle de acesso por papel (USER / ADMIN), suíte de testes automatizados e pipeline de CI/CD com GitHub Actions.
 
 ---
 
@@ -43,9 +43,16 @@ src/
 │   │   └── errorHandler.ts     ← Handler global de erros da API
 │   └── errors/index.ts         ← Classes de erro customizadas
 ├── proxy.ts                    ← Controle de acesso por rota (Next.js middleware)
+├── __tests__/
+│   ├── unit/                   ← Testes unitários (Jest)
+│   ├── integration/            ← Testes de integração (Jest)
+│   └── components/             ← Testes de componentes (React Testing Library)
 prisma/
 ├── schema.prisma               ← Models e migrações
 └── seed.ts                     ← Dados iniciais
+.github/
+└── workflows/
+    └── ci.yml                  ← Pipeline CI/CD (GitHub Actions)
 ```
 
 ---
@@ -60,8 +67,8 @@ prisma/
 ### 1. Clone e instale as dependências
 
 ```bash
-git clone <url-do-repositorio>
-cd foodapp
+git clone https://github.com/JoaoFabris/Meal-Delivery.git
+cd Meal-Delivery
 npm install
 ```
 
@@ -85,6 +92,9 @@ ADMIN_EMAILS="admin@exemplo.com"
 
 # URL base da aplicação
 NEXTAUTH_URL="http://localhost:3000"
+
+# JWT para API REST
+JWT_SECRET="sua-chave-jwt-longa-e-aleatoria"
 
 # E-mail transacional (opcional — sem isso o link é logado no terminal)
 RESEND_API_KEY="re_..."
@@ -120,14 +130,126 @@ npx prisma generate      # Regenerar o Prisma Client
 
 ---
 
+## 🧪 Testes Automatizados
+
+O projeto conta com uma suíte completa de testes implementada com **Jest** e **React Testing Library**, cobrindo back-end e front-end.
+
+### Executar os testes
+
+```bash
+# Todos os testes
+npm test
+
+# Apenas testes de back-end (unitários + integração)
+npm test -- --testPathPatterns="unit|integration"
+
+# Apenas testes de componentes (front-end)
+npm test -- --testPathPatterns="components"
+
+# Com relatório de cobertura
+npm test -- --coverage
+
+# Modo watch (desenvolvimento)
+npm test -- --watch
+```
+
+### Estrutura dos testes
+
+```
+src/__tests__/
+├── unit/
+│   ├── auth.middleware.test.ts     ← generateToken, verifyToken, requireAuth, requireAdmin
+│   ├── error.handler.test.ts       ← handleApiError, classes de erro customizadas
+│   └── validations.test.ts         ← todos os schemas Zod
+├── integration/
+│   ├── auth.api.test.ts            ← POST /api/auth/register e login
+│   ├── meals.api.test.ts           ← CRUD completo /api/meals
+│   ├── orders.api.test.ts          ← CRUD completo /api/orders
+│   ├── password.api.test.ts        ← POST /api/password/forgot e reset
+│   └── users.api.test.ts           ← GET|PUT /api/users/me
+└── components/
+    ├── Header.test.tsx             ← Rendering condicional, busca, signOut
+    ├── SearchBar.test.tsx          ← Digitação, debounce, limpar campo
+    ├── MealCard.test.tsx           ← Renderização, favoritar, adicionar ao carrinho
+    ├── CartItem.test.tsx           ← Quantidade, remoção de item
+    └── UserLoginClient.test.tsx    ← Toggle login/registro, fetch mockado, erros
+```
+
+### Cobertura de código
+
+| Métrica    | Resultado | Mínimo exigido |
+| ---------- | --------- | -------------- |
+| Statements | **97.3%** | 80% ✅         |
+| Branches   | **85.0%** | 80% ✅         |
+| Functions  | **96.5%** | 80% ✅         |
+| Lines      | **97.6%** | 80% ✅         |
+
+> **245 testes** | **18 suites** | **2 projetos** (backend + frontend)
+
+### Estratégias utilizadas
+
+- **Mocks** — Prisma Client, bcrypt, NextAuth, fetch, next/navigation
+- **Fixtures** — objetos de dados reutilizáveis por suite
+- **Testes unitários** — funções isoladas sem dependências externas
+- **Testes de integração** — endpoints completos com Prisma mockado
+- **Testes de componente** — comportamento do usuário com React Testing Library
+
+---
+
+## ⚙️ CI/CD — GitHub Actions
+
+O projeto possui um pipeline automatizado em `.github/workflows/ci.yml` que é executado a cada `push` ou `pull request` nas branches `main` e `dev`.
+
+### Fluxo do pipeline
+
+```
+git push
+    │
+    ▼
+Job 1 — Testes e Cobertura (~1m 20s)
+    ├── Instala dependências (npm ci)
+    ├── Gera Prisma Client
+    ├── Aplica migrações no banco de teste
+    ├── Executa os 245 testes com cobertura
+    └── Publica relatório de cobertura como artefato
+            │
+            ▼ (se passou)
+Job 2 — Build da Aplicação (~1m)
+    ├── Instala dependências
+    ├── Gera Prisma Client
+    └── Executa npm run build
+            │
+            ▼ (se passou + branch main)
+Job 3 — Deploy Staging (Vercel)
+    └── Deploy automático via Vercel CLI
+```
+
+### Acompanhar o pipeline
+
+Acesse: [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions)
+
+### Configurar deploy no Vercel (opcional)
+
+Para ativar o deploy automático, adicione os seguintes secrets no repositório em **Settings → Secrets → Actions**:
+
+| Secret              | Como obter                               |
+| ------------------- | ---------------------------------------- |
+| `VERCEL_TOKEN`      | vercel.com → Account Settings → Tokens   |
+| `VERCEL_ORG_ID`     | `vercel env pull` ou dashboard do Vercel |
+| `VERCEL_PROJECT_ID` | `vercel env pull` ou dashboard do Vercel |
+
+---
+
 ## 🔐 Autenticação
 
 O sistema oferece dois fluxos de autenticação independentes:
 
 ### Google OAuth
+
 Clique em "Continuar com Google" na página `/login`. A conta é criada automaticamente no banco na primeira vez.
 
 ### E-mail + Senha
+
 Registre-se ou faça login diretamente na página `/login`. A senha é armazenada com hash bcrypt (custo 10).
 
 Após autenticar por qualquer um dos dois fluxos, a sessão é mantida via **JWT** (NextAuth).
@@ -166,7 +288,7 @@ POST /api/password/reset
 ### Credenciais do seed (para testes)
 
 | Tipo  | E-mail            | Senha    |
-|-------|-------------------|----------|
+| ----- | ----------------- | -------- |
 | Admin | admin@foodapp.com | admin123 |
 | User  | user@foodapp.com  | user123  |
 
@@ -176,14 +298,15 @@ POST /api/password/reset
 
 ### 🔑 Auth
 
-| Método | Endpoint               | Descrição              | Auth |
-|--------|------------------------|------------------------|------|
-| POST   | `/api/auth/register`   | Registrar usuário      | —    |
-| POST   | `/api/auth/login`      | Login (retorna JWT)    | —    |
-| POST   | `/api/password/forgot` | Solicitar reset        | —    |
-| POST   | `/api/password/reset`  | Redefinir senha        | —    |
+| Método | Endpoint               | Descrição           | Auth |
+| ------ | ---------------------- | ------------------- | ---- |
+| POST   | `/api/auth/register`   | Registrar usuário   | —    |
+| POST   | `/api/auth/login`      | Login (retorna JWT) | —    |
+| POST   | `/api/password/forgot` | Solicitar reset     | —    |
+| POST   | `/api/password/reset`  | Redefinir senha     | —    |
 
 #### `POST /api/auth/register`
+
 ```json
 // Requisição
 { "name": "João Silva", "email": "joao@email.com", "password": "senha123" }
@@ -197,6 +320,7 @@ POST /api/password/reset
 ```
 
 #### `POST /api/auth/login`
+
 ```json
 // Requisição
 { "email": "joao@email.com", "password": "senha123" }
@@ -213,69 +337,28 @@ POST /api/password/reset
 
 ### 🍽️ Meals (Pratos)
 
-| Método | Endpoint          | Descrição             | Auth    |
-|--------|-------------------|-----------------------|---------|
-| GET    | `/api/meals`      | Listar pratos         | —       |
-| GET    | `/api/meals/:id`  | Buscar prato          | —       |
-| POST   | `/api/meals`      | Criar prato           | 🔒 Admin |
-| PUT    | `/api/meals/:id`  | Atualizar prato       | 🔒 Admin |
-| DELETE | `/api/meals/:id`  | Remover prato         | 🔒 Admin |
+| Método | Endpoint         | Descrição       | Auth     |
+| ------ | ---------------- | --------------- | -------- |
+| GET    | `/api/meals`     | Listar pratos   | —        |
+| GET    | `/api/meals/:id` | Buscar prato    | —        |
+| POST   | `/api/meals`     | Criar prato     | 🔒 Admin |
+| PUT    | `/api/meals/:id` | Atualizar prato | 🔒 Admin |
+| DELETE | `/api/meals/:id` | Remover prato   | 🔒 Admin |
 
 **Query params** em `GET /api/meals`: `?category=Beef`, `?search=pizza`, `?available=true`
-
-```json
-// GET /api/meals — Resposta 200
-{
-  "meals": [
-    {
-      "id": "meal-1",
-      "name": "X-Burguer Clássico",
-      "price": 28.90,
-      "category": "Burgers",
-      "imageUrl": "https://...",
-      "available": true
-    }
-  ],
-  "total": 4
-}
-```
-
-```json
-// POST /api/meals — Corpo
-{
-  "name": "Novo Prato",
-  "description": "Descrição",
-  "price": 35.90,
-  "category": "Chicken",
-  "imageUrl": "https://exemplo.com/img.jpg",
-  "available": true
-}
-```
 
 ---
 
 ### 📦 Orders (Pedidos)
 
-| Método | Endpoint            | Descrição                  | Auth      |
-|--------|---------------------|----------------------------|-----------|
-| GET    | `/api/orders`       | Listar pedidos             | 🔒 User   |
-| POST   | `/api/orders`       | Criar pedido               | 🔒 User   |
-| GET    | `/api/orders/:id`   | Buscar pedido              | 🔒 User   |
-| PUT    | `/api/orders/:id`   | Atualizar status           | 🔒 User   |
+| Método | Endpoint          | Descrição        | Auth    |
+| ------ | ----------------- | ---------------- | ------- |
+| GET    | `/api/orders`     | Listar pedidos   | 🔒 User |
+| POST   | `/api/orders`     | Criar pedido     | 🔒 User |
+| GET    | `/api/orders/:id` | Buscar pedido    | 🔒 User |
+| PUT    | `/api/orders/:id` | Atualizar status | 🔒 User |
 
-> USER vê apenas seus próprios pedidos. ADMIN vê todos.  
-> USER só pode cancelar (`CANCELLED`). ADMIN pode usar qualquer status.
-
-```json
-// POST /api/orders — Corpo
-{ "items": [{ "mealId": "meal-1", "quantity": 2 }, { "mealId": "meal-3", "quantity": 1 }] }
-
-// Resposta 201
-{
-  "message": "Pedido criado com sucesso.",
-  "order": { "id": "...", "total": 79.70, "status": "PENDING", "items": [...] }
-}
-```
+> USER vê apenas seus próprios pedidos. ADMIN vê todos.
 
 **Status disponíveis:** `PENDING` → `CONFIRMED` → `PREPARING` → `DELIVERED` / `CANCELLED`
 
@@ -283,25 +366,11 @@ POST /api/password/reset
 
 ### 👤 Users (Usuários)
 
-| Método | Endpoint          | Descrição              | Auth      |
-|--------|-------------------|------------------------|-----------|
-| GET    | `/api/users/me`   | Meu perfil             | 🔒 User   |
-| PUT    | `/api/users/me`   | Atualizar perfil       | 🔒 User   |
-| GET    | `/api/users`      | Listar usuários        | 🔒 Admin  |
-
-```json
-// GET /api/users/me — Resposta 200
-{
-  "user": {
-    "id": "...",
-    "name": "João Silva",
-    "email": "joao@email.com",
-    "role": "USER",
-    "createdAt": "...",
-    "_count": { "orders": 3, "favorites": 5 }
-  }
-}
-```
+| Método | Endpoint        | Descrição        | Auth     |
+| ------ | --------------- | ---------------- | -------- |
+| GET    | `/api/users/me` | Meu perfil       | 🔒 User  |
+| PUT    | `/api/users/me` | Atualizar perfil | 🔒 User  |
+| GET    | `/api/users`    | Listar usuários  | 🔒 Admin |
 
 ---
 
@@ -319,14 +388,14 @@ Todos os erros seguem formato padronizado:
 }
 ```
 
-| Código | Tipo                    | Quando ocorre                        |
-|--------|-------------------------|--------------------------------------|
-| 400    | `VALIDATION_ERROR`      | Dados inválidos na requisição        |
-| 401    | `UNAUTHORIZED`          | Token ausente, inválido ou expirado  |
-| 403    | `FORBIDDEN`             | Sem permissão para o recurso         |
-| 404    | `NOT_FOUND`             | Recurso não encontrado               |
-| 409    | `CONFLICT`              | E-mail já cadastrado                 |
-| 500    | `INTERNAL_SERVER_ERROR` | Erro inesperado no servidor          |
+| Código | Tipo                    | Quando ocorre                       |
+| ------ | ----------------------- | ----------------------------------- |
+| 400    | `VALIDATION_ERROR`      | Dados inválidos na requisição       |
+| 401    | `UNAUTHORIZED`          | Token ausente, inválido ou expirado |
+| 403    | `FORBIDDEN`             | Sem permissão para o recurso        |
+| 404    | `NOT_FOUND`             | Recurso não encontrado              |
+| 409    | `CONFLICT`              | E-mail já cadastrado                |
+| 500    | `INTERNAL_SERVER_ERROR` | Erro inesperado no servidor         |
 
 ---
 
@@ -337,36 +406,39 @@ users ──────────< orders >────────── ord
   │                                                      │
   └──────────────< favorites >───────────────────────────┘
   │
-  └──< accounts >   (NextAuth OAuth)
-  └──< sessions >   (NextAuth sessões)
+  └──< accounts >               (NextAuth OAuth)
+  └──< sessions >               (NextAuth sessões)
   └──< password_reset_tokens >  (recuperação de senha)
 ```
 
 ### Migrações aplicadas
 
-| Migration | Descrição |
-|---|---|
-| `20260426214930_password_opcional` | `password` vira nullable |
-| `20260427195714_add_password_reset_token` | Tabela `password_reset_tokens` |
-| `20260427203117_add_nextauth_tables` | Tabelas `accounts`, `sessions`, `verification_tokens` + campo `image` em `users` |
+| Migration                                 | Descrição                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `20260426214930_password_opcional`        | `password` vira nullable                                                         |
+| `20260427195714_add_password_reset_token` | Tabela `password_reset_tokens`                                                   |
+| `20260427203117_add_nextauth_tables`      | Tabelas `accounts`, `sessions`, `verification_tokens` + campo `image` em `users` |
 
 ---
 
 ## 🛠️ Tecnologias
 
-| Tecnologia        | Versão   | Uso                                         |
-|-------------------|----------|---------------------------------------------|
-| Next.js           | 16.2.3   | Framework full-stack / App Router           |
-| React             | 19       | Interface do usuário                        |
-| TypeScript        | 5+       | Tipagem estática                            |
-| Prisma ORM        | 6.19.x   | ORM / migrations / pool de conexões         |
-| PostgreSQL        | 15+      | Banco de dados relacional                   |
-| NextAuth          | 5 (beta) | Autenticação OAuth + Credentials            |
-| bcryptjs          | 3+       | Hash de senhas                              |
-| jsonwebtoken      | 9+       | JWT próprio para consumo da API             |
-| Zod               | 4+       | Validação de schemas                        |
-| Zustand           | 5+       | Gerenciamento de estado (cart, favorites)   |
-| Resend            | 6+       | Envio de e-mail transacional                |
-| shadcn/ui         | —        | Componentes de UI                           |
-| Tailwind CSS      | 4+       | Estilização                                 |
-| Sonner            | 2+       | Notificações toast                          |
+| Tecnologia            | Versão   | Uso                                       |
+| --------------------- | -------- | ----------------------------------------- |
+| Next.js               | 16.2.3   | Framework full-stack / App Router         |
+| React                 | 19       | Interface do usuário                      |
+| TypeScript            | 5+       | Tipagem estática                          |
+| Prisma ORM            | 6.19.x   | ORM / migrations / pool de conexões       |
+| PostgreSQL            | 15+      | Banco de dados relacional                 |
+| NextAuth              | 5 (beta) | Autenticação OAuth + Credentials          |
+| bcryptjs              | 3+       | Hash de senhas                            |
+| jsonwebtoken          | 9+       | JWT próprio para consumo da API           |
+| Zod                   | 4+       | Validação de schemas                      |
+| Zustand               | 5+       | Gerenciamento de estado (cart, favorites) |
+| Resend                | 6+       | Envio de e-mail transacional              |
+| shadcn/ui             | —        | Componentes de UI                         |
+| Tailwind CSS          | 4+       | Estilização                               |
+| Sonner                | 2+       | Notificações toast                        |
+| Jest                  | 30+      | Testes unitários e de integração          |
+| React Testing Library | —        | Testes de componentes                     |
+| GitHub Actions        | —        | CI/CD automatizado                        |
