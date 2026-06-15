@@ -7,7 +7,7 @@ on:
     branches: [main, dev]
 
 jobs:
-  # ── Job 1: Testes e Cobertura ────────────────────────────
+  #  Job 1: Testes e Cobertura
   test:
     name: Testes e Cobertura
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
 
       - name: Verificar cobertura mínima (80%)
         run: |
-          echo "✅ Cobertura verificada pelo threshold configurado no jest.config.ts"
+          echo "Cobertura verificada pelo threshold configurado no jest.config.ts"
 
       - name: Publicar relatório de cobertura
         uses: actions/upload-artifact@v4
@@ -71,7 +71,7 @@ jobs:
           path: coverage/
           retention-days: 30
 
-  # ── Job 2: Build ─────────────────────────────────────────
+  #  Job 2: Build
   build:
     name: Build da Aplicação
     runs-on: ubuntu-latest
@@ -111,7 +111,7 @@ jobs:
           path: .next/
           retention-days: 7
 
-  # ── Job 3: Deploy (staging) ───────────────────────────────
+  #  Job 3: Deploy (staging)
   deploy:
     name: Deploy Staging (Vercel)
     runs-on: ubuntu-latest
