@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/middleware/auth";
-import { handleApiError } from "@/lib/middleware/errorHandler";
-import { createOrderSchema } from "@/lib/validations";
-import { ValidationError } from "@/lib/errors";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/middleware/auth';
+import { handleApiError } from '@/lib/middleware/errorHandler';
+import { createOrderSchema } from '@/lib/validations';
+import { ValidationError } from '@/lib/errors';
+import type { Meal } from '@prisma/client';
 
 /**
  * GET /api/orders
@@ -16,16 +17,18 @@ export async function GET(request: NextRequest) {
     const currentUser = requireAuth(request);
 
     const orders = await prisma.order.findMany({
-      where: currentUser.role === "ADMIN" ? {} : { userId: currentUser.userId },
+      where: currentUser.role === 'ADMIN' ? {} : { userId: currentUser.userId },
       include: {
         user: { select: { id: true, name: true, email: true } },
         items: {
           include: {
-            meal: { select: { id: true, name: true, imageUrl: true, price: true } },
+            meal: {
+              select: { id: true, name: true, imageUrl: true, price: true },
+            },
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json({ orders, total: orders.length });
@@ -56,12 +59,12 @@ export async function POST(request: NextRequest) {
     // Valida se todos os pratos existem e estão disponíveis
     if (meals.length !== mealIds.length) {
       throw new ValidationError(
-        "Um ou mais pratos não foram encontrados ou estão indisponíveis."
+        'Um ou mais pratos não foram encontrados ou estão indisponíveis.',
       );
     }
 
     // Calcula o total do pedido
-    const mealMap = new Map(meals.map((m) => [m.id, m]));
+    const mealMap = new Map(meals.map((m: Meal) => [m.id, m]));
     let total = 0;
 
     const orderItems = data.items.map((item) => {
@@ -91,7 +94,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message: "Pedido criado com sucesso.", order }, { status: 201 });
+    return NextResponse.json(
+      { message: 'Pedido criado com sucesso.', order },
+      { status: 201 },
+    );
   } catch (error) {
     return handleApiError(error);
   }
