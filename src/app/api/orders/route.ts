@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const data = createOrderSchema.parse(body);
 
     const mealIds = data.items.map((item) => item.mealId);
-    const meals = await prisma.meal.findMany({
+    const meals: MealData[] = await prisma.meal.findMany({
       where: { id: { in: mealIds }, available: true },
       select: { id: true, price: true },
     });
