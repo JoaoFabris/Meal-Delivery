@@ -4,14 +4,7 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { handleApiError } from '@/lib/middleware/errorHandler';
 import { createOrderSchema } from '@/lib/validations';
 import { ValidationError } from '@/lib/errors';
-import type { Meal } from '@prisma/client';
 
-/**
- * GET /api/orders
- * Lista os pedidos do usuário autenticado.
- * ADMIN vê todos os pedidos.
- * Rota protegida.
- */
 export async function GET(request: NextRequest) {
   try {
     const currentUser = requireAuth(request);
@@ -37,12 +30,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST /api/orders
- * Cria um novo pedido para o usuário autenticado.
- * Calcula o total automaticamente com base nos preços dos pratos.
- * Rota protegida.
- */
 export async function POST(request: NextRequest) {
   try {
     const currentUser = requireAuth(request);
@@ -50,35 +37,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createOrderSchema.parse(body);
 
-    // Busca todos os pratos do pedido
     const mealIds = data.items.map((item) => item.mealId);
     const meals = await prisma.meal.findMany({
       where: { id: { in: mealIds }, available: true },
     });
 
-    // Valida se todos os pratos existem e estão disponíveis
     if (meals.length !== mealIds.length) {
       throw new ValidationError(
         'Um ou mais pratos não foram encontrados ou estão indisponíveis.',
       );
     }
 
-    // Calcula o total do pedido
-    const mealMap = new Map(meals.map((m: Meal) => [m.id, m]));
+    const mealMap = new Map(
+      meals.map((m: { id: string; price: number; [key: string]: unknown }) => [
+        m.id,
+        m,
+      ]),
+    );
     let total = 0;
 
     const orderItems = data.items.map((item) => {
       const meal = mealMap.get(item.mealId)!;
-      const itemTotal = meal.price * item.quantity;
+      const itemTotal = (meal.price as number) * item.quantity;
       total += itemTotal;
       return {
         mealId: item.mealId,
         quantity: item.quantity,
-        price: meal.price,
+        price: meal.price as number,
       };
     });
 
-    // Cria o pedido com seus itens
     const order = await prisma.order.create({
       data: {
         userId: currentUser.userId,
