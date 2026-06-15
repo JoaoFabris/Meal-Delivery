@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { handleApiError } from '@/lib/middleware/errorHandler';
 import { createOrderSchema } from '@/lib/validations';
 import { ValidationError } from '@/lib/errors';
-
+//
 export async function GET(request: NextRequest) {
   try {
     const currentUser = requireAuth(request);
