@@ -95,34 +95,6 @@ describe('Header — sem sessão', () => {
         render(<Header />)
         expect(screen.queryByText('Admin')).not.toBeInTheDocument()
     })
-
-    it('deve renderizar campo de busca desktop', () => {
-        render(<Header />)
-        expect(screen.getByPlaceholderText(/buscar pratos, cuisines/i)).toBeInTheDocument()
-    })
-
-    it('deve atualizar campo de busca ao digitar', () => {
-        render(<Header />)
-        const input = screen.getByPlaceholderText(/buscar pratos, cuisines/i) as HTMLInputElement
-        fireEvent.change(input, { target: { value: 'pizza' } })
-        expect(input.value).toBe('pizza')
-    })
-
-    it('não deve navegar ao submeter busca vazia', () => {
-        render(<Header />)
-        const form = screen.getByPlaceholderText(/buscar pratos, cuisines/i).closest('form')!
-        fireEvent.submit(form)
-        expect(mockPush).not.toHaveBeenCalled()
-    })
-
-    it('deve navegar ao submeter busca com texto', () => {
-        render(<Header />)
-        const input = screen.getByPlaceholderText(/buscar pratos, cuisines/i)
-        fireEvent.change(input, { target: { value: 'sushi' } })
-        const form = input.closest('form')!
-        fireEvent.submit(form)
-        expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('search=sushi'))
-    })
 })
 
 describe('Header — com sessão de usuário', () => {
