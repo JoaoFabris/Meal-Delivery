@@ -8,10 +8,10 @@ import { useDebouncedCallback } from 'use-debounce'
 export function SearchBar() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    
+
 
     const queryInUrl = searchParams.get('search') ?? ''
-    
+
 
     const [value, setValue] = useState(queryInUrl)
 
@@ -50,7 +50,7 @@ export function SearchBar() {
                 value={value}
                 onChange={handleChange}
                 placeholder="Buscar pelo nome do prato..."
-                className="w-full h-10 rounded-full border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm outline-none transition-all focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/10"
+                className="w-full h-10 rounded-full border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm text-gray-900 outline-none transition-all focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/10"
             />
             {value && (
                 <button
