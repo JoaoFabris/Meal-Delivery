@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
   User,
@@ -32,7 +32,8 @@ export function Header() {
   const isLoggedIn = !!session;
 
   const isAdmin = user?.isAdmin;
-  const [search, setSearch] = useState('');
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function handleSearch(e: React.FormEvent) {
