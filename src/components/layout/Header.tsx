@@ -36,11 +36,14 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!search.trim()) return;
-    const params = new URLSearchParams(window.location.search);
-    params.set('search', search.trim());
-    router.push(`/?${params.toString()}`);
+    e.preventDefault()
+    const params = new URLSearchParams(window.location.search)
+    if (!search.trim()) {
+      params.delete('search')
+    } else {
+      params.set('search', search.trim())
+    }
+    router.push(`/?${params.toString()}`)
   }
 
   function handleLogout() {
