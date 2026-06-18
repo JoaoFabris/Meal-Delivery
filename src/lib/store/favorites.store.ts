@@ -1,42 +1,36 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { Meal } from '@/types/meal.types'
+import { create } from 'zustand';
+import { Meal } from '@/types/meal.types';
 
 interface FavoritesStore {
-  favorites: Meal[]
-  addFavorite: (meal: Meal) => void
-  removeFavorite: (mealId: string) => void
-  isFavorite: (mealId: string) => boolean
-  toggleFavorite: (meal: Meal) => void
+  favoriteIds: string[];
+  loaded: boolean;
+  setFavoriteIds: (ids: string[]) => void;
+  isFavorite: (mealId: string) => boolean;
+  toggleFavorite: (meal: Meal) => Promise<void>;
+  clearFavorites: () => void;
 }
 
-export const useFavoritesStore = create<FavoritesStore>()(
-  persist(
-    (set, get) => ({
-      favorites: [],
+export const useFavoritesStore = create<FavoritesStore>()((set, get) => ({
+  favoriteIds: [],
+  loaded: false,
 
-      addFavorite: (meal) => {
-        if (!get().isFavorite(meal.id)) {
-          set({ favorites: [...get().favorites, meal] })
-        }
-      },
+  setFavoriteIds: (ids) => set({ favoriteIds: ids, loaded: true }),
 
-      removeFavorite: (mealId) => {
-        set({ favorites: get().favorites.filter((m) => m.id !== mealId) })
-      },
+  clearFavorites: () => set({ favoriteIds: [], loaded: false }),
 
-      isFavorite: (mealId) => get().favorites.some((m) => m.id === mealId),
+  isFavorite: (mealId) => get().favoriteIds.includes(mealId),
 
-      toggleFavorite: (meal) => {
-        if (get().isFavorite(meal.id)) {
-          get().removeFavorite(meal.id)
-        } else {
-          get().addFavorite(meal)
-        }
-      },
-    }),
-    {
-      name: 'foodapp-favorites',
+  toggleFavorite: async (meal) => {
+    const res = await fetch('/api/favorites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mealId: meal.id }),
+    });
+    const data = await res.json();
+    if (data.favorited) {
+      set({ favoriteIds: [...get().favoriteIds, meal.id] });
+    } else {
+      set({ favoriteIds: get().favoriteIds.filter((id) => id !== meal.id) });
     }
-  )
-)
+  },
+}));
