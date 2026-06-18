@@ -23,11 +23,11 @@ export function ProfilePageClient() {
   const { data: session } = useSession()
   const user = session?.user
 
-  const { favorites } = useFavoritesStore()
+  const { favoriteIds } = useFavoritesStore()
   const { orders } = useCartStore()
 
   const counts: Record<string, number> = {
-    favorites: favorites.length,
+    favorites: favoriteIds.length,
     orders: orders.length,
   }
 
@@ -85,7 +85,7 @@ export function ProfilePageClient() {
         {/* Estatísticas */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="text-center p-3 rounded-2xl bg-[var(--color-surface-2)]">
-            <p className="text-2xl font-black text-[var(--color-brand)]">{favorites.length}</p>
+            <p className="text-2xl font-black text-[var(--color-brand)]">{favoriteIds.length}</p>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Favoritos</p>
           </div>
           <div className="text-center p-3 rounded-2xl bg-[var(--color-surface-2)]">
