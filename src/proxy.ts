@@ -13,6 +13,13 @@ export async function proxy(req: NextRequest) {
         : 'authjs.session-token',
   });
 
+  console.log('[proxy] pathname:', pathname);
+  console.log('[proxy] token:', JSON.stringify(token));
+  console.log(
+    '[proxy] cookies:',
+    req.cookies.getAll().map((c) => c.name),
+  );
+
   const isAdminRoute = pathname.startsWith('/admin');
   const isProtectedUserRoute =
     pathname.startsWith('/cart') || pathname.startsWith('/profile');
