@@ -4,19 +4,17 @@ import { getToken } from 'next-auth/jwt';
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieName = isProd
+    ? '__Secure-authjs.session-token'
+    : 'authjs.session-token';
+
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET!,
-    cookieName: '__Secure-authjs.session-token',
-    salt: '__Secure-authjs.session-token',
+    cookieName,
+    salt: cookieName,
   });
-
-  console.log('[proxy] pathname:', pathname);
-  console.log('[proxy] token:', JSON.stringify(token));
-  console.log(
-    '[proxy] cookies:',
-    req.cookies.getAll().map((c) => c.name),
-  );
 
   const isAdminRoute = pathname.startsWith('/admin');
   const isProtectedUserRoute =
