@@ -11,13 +11,13 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
 export function FavoriteMealCard({ meal }: { meal: Meal }) {
-    const { removeFavorite } = useFavoritesStore()
+    const { toggleFavorite } = useFavoritesStore()
     const { addItem } = useCartStore()
 
-    function handleRemove(e: React.MouseEvent) {
+    async function handleRemove(e: React.MouseEvent) {
         e.preventDefault()
         e.stopPropagation()
-        removeFavorite(meal.id)
+        await toggleFavorite(meal)
         toast('Removido dos favoritos', { icon: '💔' })
     }
 
@@ -42,12 +42,10 @@ export function FavoriteMealCard({ meal }: { meal: Meal }) {
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
 
-                    {/* Badge categoria */}
                     <Badge className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[var(--color-text-primary)] border-0 text-xs font-medium shadow-sm">
                         {meal.category}
                     </Badge>
 
-                    {/* Botão remover favorito */}
                     <button
                         onClick={handleRemove}
                         aria-label="Remover dos favoritos"
@@ -57,7 +55,6 @@ export function FavoriteMealCard({ meal }: { meal: Meal }) {
                     </button>
                 </div>
 
-                {/* Conteúdo */}
                 <div className="p-4">
                     <div className="flex items-center gap-1 mb-1">
                         <MapPin className="h-3 w-3 text-[var(--color-text-muted)]" />
