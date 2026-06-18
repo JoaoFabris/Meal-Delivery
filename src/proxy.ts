@@ -3,7 +3,15 @@ import { getToken } from 'next-auth/jwt';
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET!,
+    salt:
+      process.env.NODE_ENV === 'production'
+        ? '__Secure-authjs.session-token'
+        : 'authjs.session-token',
+  });
 
   const isAdminRoute = pathname.startsWith('/admin');
   const isProtectedUserRoute =
