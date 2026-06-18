@@ -93,7 +93,6 @@ model Meal {
   updatedAt   DateTime @updatedAt
 
   orderItems OrderItem[]
-  favorites  Favorite[]
 
   @@map("meals")
 }
@@ -132,7 +131,6 @@ model Favorite {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
-  meal Meal @relation(fields: [mealId], references: [id])
 
   @@unique([userId, mealId])
   @@map("favorites")
