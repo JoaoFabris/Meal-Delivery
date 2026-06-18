@@ -5,12 +5,21 @@ import { useFavoritesStore } from '@/lib/store/favorites.store'
 import { Meal } from '@/types/meal.types'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 export function FavoriteButton({ meal }: { meal: Meal }) {
     const { isFavorite, toggleFavorite } = useFavoritesStore()
+    const { data: session } = useSession()
+    const router = useRouter()
     const favorited = isFavorite(meal.id)
 
     function handle() {
+        if (!session) {
+            toast.error('Faça login para salvar favoritos', { icon: '🔒' })
+            router.push('/login')
+            return
+        }
         toggleFavorite(meal)
         toast(favorited ? 'Removido dos favoritos' : 'Salvo nos favoritos', {
             icon: favorited ? '💔' : '❤️',
