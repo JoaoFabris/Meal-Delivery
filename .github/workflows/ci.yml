@@ -112,29 +112,3 @@ jobs:
           name: nextjs-build
           path: .next/
           retention-days: 7
-
-  #  Job 3: Deploy (staging)
-  deploy:
-    name: Deploy Staging (Vercel)
-    runs-on: ubuntu-latest
-    needs: build # só executa se o build passar
-    if: github.ref == 'refs/heads/main' # apenas na branch main
-
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Instalar Vercel CLI
-        run: npm install -g vercel
-
-      - name: Deploy para Vercel (staging)
-        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
