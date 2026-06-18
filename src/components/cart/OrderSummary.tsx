@@ -38,17 +38,13 @@ export function OrderSummary() {
   }
 
   async function handleCheckout() {
-    if (status !== 'authenticated') {
-      toast.error('Faça login para concluir seu pedido');
-      return;
-    }
-
     setLoading(true);
 
     const validation = await validateSessionForOrder();
     if (!validation.ok) {
-      toast.error(validation.message);
+      toast.error(validation.message ?? 'Faça login para concluir seu pedido');
       setLoading(false);
+      router.push('/login');
       return;
     }
 
@@ -56,7 +52,6 @@ export function OrderSummary() {
     setLoading(false);
     router.push('/cart/success');
   }
-
   const isLoggedIn = status === 'authenticated';
 
   return (
