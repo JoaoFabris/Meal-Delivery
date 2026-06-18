@@ -16,11 +16,11 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Hero */}
-      <section className="rounded-3xl bg-gradient-to-r from-[var(--color-brand)] to-[#ff6b35] p-8 text-white text-center">
-        <p className="text-sm font-medium opacity-80 mb-1">
-          Bem-vindo ao FoodApp{' '}
+      <section className="rounded-3xl bg-gradient-to-r from-[var(--color-brand)] to-[#ff6b35] p-8 text-white text-center space-y-4">
+        <p className="text-sm font-medium opacity-80">
+          Bem-vindo ao FoodApp
         </p>
-        <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-2">
+        <h1 className="text-3xl sm:text-4xl font-black leading-tight">
           O que você quer
           <br />
           comer hoje?
@@ -28,21 +28,18 @@ export default async function Home({ searchParams }: HomeProps) {
         <p className="text-sm opacity-75">
           Pratos de todo o mundo, entregues até você.
         </p>
+        <div className="mx-auto max-w-md pt-2">
+          <Suspense>
+            <SearchBar />
+          </Suspense>
+        </div>
       </section>
 
       {/* Filtros */}
       <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)] flex-shrink-0">
-            Categorias
-          </h2>
-          <div className="sm:ml-auto w-full sm:max-w-xs">
-            <Suspense>
-              <SearchBar />
-            </Suspense>
-          </div>
-        </div>
-
+        <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+          Categorias
+        </h2>
         <Suspense>
           <CategoryFilter categories={categories} />
         </Suspense>
