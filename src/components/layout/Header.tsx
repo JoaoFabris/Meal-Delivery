@@ -1,19 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Search,
   User,
   LogOut,
   Heart,
   ClipboardList,
-  Menu,
-  X,
   ShieldCheck,
 } from 'lucide-react';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,31 +16,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CartSheet } from '@/components/cart/CartSheet';
 
-
 export function Header() {
-  const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
   const isLoggedIn = !!session;
-
   const isAdmin = user?.isAdmin;
-  const searchParams = useSearchParams();
-  const [search, setSearch] = useState(searchParams.get('search') ?? '');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const params = new URLSearchParams(window.location.search)
-    if (!search.trim()) {
-      params.delete('search')
-    } else {
-      params.set('search', search.trim())
-    }
-    router.push(`/?${params.toString()}`)
-  }
 
   function handleLogout() {
     signOut({ callbackUrl: '/' });
@@ -64,22 +42,6 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Search desktop */}
-        <form
-          onSubmit={handleSearch}
-          className="hidden md:flex flex-1 max-w-xl mx-4"
-        >
-          <div className="relative w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar pratos, cuisines..."
-              className="w-full h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] pl-10 pr-4 text-sm outline-none transition-all focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/10"
-            />
-          </div>
-        </form>
         {/* Ações */}
         <div className="ml-auto flex items-center gap-2">
           {isAdmin && (
@@ -129,18 +91,12 @@ export function Header() {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
+                  <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                     <Heart className="h-4 w-4" /> Favoritos
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link
-                    href="/profile?tab=orders"
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
+                  <Link href="/profile?tab=orders" className="flex items-center gap-2 cursor-pointer">
                     <ClipboardList className="h-4 w-4" /> Meus pedidos
                   </Link>
                 </DropdownMenuItem>
@@ -149,10 +105,7 @@ export function Header() {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link
-                        href="/admin"
-                        className="flex items-center gap-2 cursor-pointer font-medium text-[var(--color-brand)]"
-                      >
+                      <Link href="/admin" className="flex items-center gap-2 cursor-pointer font-medium text-[var(--color-brand)]">
                         <ShieldCheck className="h-4 w-4" /> Painel Admin
                       </Link>
                     </DropdownMenuItem>
@@ -179,24 +132,6 @@ export function Header() {
           )}
         </div>
       </div>
-
-      {/* Busca mobile */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t px-4 py-3">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar pratos..."
-                className="w-full h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] pl-10 pr-4 text-sm outline-none focus:border-[var(--color-brand)]"
-              />
-            </div>
-          </form>
-        </div>
-      )}
     </header>
   );
 }
