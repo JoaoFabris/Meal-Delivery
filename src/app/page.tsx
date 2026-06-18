@@ -36,7 +36,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <h2 className="text-lg font-bold text-[var(--color-text-primary)] flex-shrink-0">
             Categorias
           </h2>
-          <div className="sm:ml-auto md:hidden">
+          <div className="sm:ml-auto w-full sm:max-w-xs">
             <Suspense>
               <SearchBar />
             </Suspense>
