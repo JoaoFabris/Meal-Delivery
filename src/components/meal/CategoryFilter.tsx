@@ -37,15 +37,16 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
 
   function onMouseUp() { isDragging.current = false; }
 
-function handleSelect(category: string) {
+  function handleSelect(category: string) {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('search')
     if (category === 'Todas' || category === active) {
-        params.delete('category');
+      params.delete('category');
     } else {
-        params.set('category', category);
+      params.set('category', category);
     }
     router.push(`/?${params.toString()}`, { scroll: false });
-}
+  }
 
   const all = [
     { idCategory: '0', strCategory: 'Todas', strCategoryThumb: '', strCategoryDescription: '' },
