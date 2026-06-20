@@ -4,18 +4,20 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { useState } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
+import { cn } from '@/lib/utils'
 
-export function SearchBar() {
+interface SearchBarProps {
+    hero?: boolean
+}
+
+export function SearchBar({ hero }: SearchBarProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
-
     const queryInUrl = searchParams.get('search') ?? ''
-
-
     const [value, setValue] = useState(queryInUrl)
-
     const [lastQueryInUrl, setLastQueryInUrl] = useState(queryInUrl)
+
     if (queryInUrl !== lastQueryInUrl) {
         setLastQueryInUrl(queryInUrl)
         setValue(queryInUrl)
@@ -44,19 +46,27 @@ export function SearchBar() {
 
     return (
         <div className="relative w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
+            <Search className={cn(
+                'absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4',
+                hero ? 'text-gray-400' : 'text-[var(--color-text-muted)]'
+            )} />
             <input
                 type="text"
                 value={value}
                 onChange={handleChange}
                 placeholder="Buscar pelo nome do prato..."
-                className="w-full h-10 rounded-full border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm text-gray-900 outline-none transition-all focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/10"
+                className={cn(
+                    'w-full h-12 rounded-full pl-10 pr-9 text-sm outline-none transition-all text-gray-900',
+                    hero
+                        ? 'bg-white shadow-xl shadow-black/20 border-0 focus:ring-4 focus:ring-white/30 placeholder:text-gray-400'
+                        : 'border border-[var(--color-border)] bg-white focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/10'
+                )}
             />
             {value && (
                 <button
                     type="button"
                     onClick={handleClear}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                     <X className="h-4 w-4" />
                 </button>
