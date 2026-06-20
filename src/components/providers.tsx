@@ -28,8 +28,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <FavoritesSyncer />
             {children}
             <Toaster
-                position="bottom-center"
+                position="top-center"
                 richColors
+                offset={70}
                 toastOptions={{
                     style: {
                         background: 'white',
