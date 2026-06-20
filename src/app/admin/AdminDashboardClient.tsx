@@ -1,24 +1,41 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ClipboardList, Clock, CheckCircle2, XCircle, TrendingUp } from 'lucide-react'
-import { useCartStore } from '@/lib/store/cart.store'
+import { ClipboardList, Clock, CheckCircle2, TrendingUp } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 
 interface Props {
     adminName: string
 }
 
-export function AdminDashboardClient({ adminName }: Props) {
-    const { orders } = useCartStore()
+type Stats = {
+    total: number
+    confirmed: number
+    pending: number
+    delivered: number
+    revenue: number
+}
 
-    const stats = {
-        total: orders.length,
-        confirmed: orders.filter((o) => o.status === 'confirmed').length,
-        pending: orders.filter((o) => o.status === 'pending').length,
-        delivered: orders.filter((o) => o.status === 'delivered').length,
-        revenue: orders.reduce((acc, o) => acc + o.total, 0),
-    }
+export function AdminDashboardClient({ adminName }: Props) {
+    const [stats, setStats] = useState<Stats>({
+        total: 0, confirmed: 0, pending: 0, delivered: 0, revenue: 0,
+    })
+
+    useEffect(() => {
+        fetch('/api/admin/orders')
+            .then(res => res.json())
+            .then(data => {
+                const orders = data.orders ?? []
+                setStats({
+                    total: orders.length,
+                    confirmed: orders.filter((o: { status: string }) => o.status === 'CONFIRMED').length,
+                    pending: orders.filter((o: { status: string }) => o.status === 'PENDING').length,
+                    delivered: orders.filter((o: { status: string }) => o.status === 'DELIVERED').length,
+                    revenue: orders.reduce((acc: number, o: { total: number }) => acc + o.total, 0),
+                })
+            })
+    }, [])
 
     const CARDS = [
         { label: 'Total de pedidos', value: stats.total, icon: ClipboardList, color: 'text-blue-600 bg-blue-50' },
@@ -29,8 +46,6 @@ export function AdminDashboardClient({ adminName }: Props) {
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto">
-
-            {/* Boas vindas */}
             <div>
                 <h2 className="text-2xl font-black">Olá, {adminName.split(' ')[0]} 👋</h2>
                 <p className="text-sm text-[var(--color-text-muted)] mt-1">
@@ -38,7 +53,6 @@ export function AdminDashboardClient({ adminName }: Props) {
                 </p>
             </div>
 
-            {/* Cards de stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {CARDS.map(({ label, value, icon: Icon, color }) => (
                     <div key={label} className="bg-white rounded-2xl border border-[var(--color-border)] p-5 space-y-3">
@@ -53,7 +67,6 @@ export function AdminDashboardClient({ adminName }: Props) {
                 ))}
             </div>
 
-            {/* Receita total */}
             <div className="bg-gradient-to-r from-[var(--color-brand)] to-[#ff6b35] rounded-2xl p-6 text-white">
                 <div className="flex items-center gap-3 mb-2">
                     <TrendingUp className="h-5 w-5 opacity-80" />
@@ -65,7 +78,6 @@ export function AdminDashboardClient({ adminName }: Props) {
                 </p>
             </div>
 
-            {/* Atalho para pedidos */}
             <div className="bg-white rounded-2xl border border-[var(--color-border)] p-5 flex items-center justify-between">
                 <div>
                     <p className="font-semibold">Gerenciar pedidos</p>
