@@ -6,9 +6,9 @@ import { Separator } from '@/components/ui/separator'
 import { FavoritesTab } from '@/components/profile/FavoritesTab'
 import { OrdersTab } from '@/components/profile/OrdersTab'
 import { useFavoritesStore } from '@/lib/store/favorites.store'
-import { useCartStore } from '@/lib/store/cart.store'
 import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 
 const TABS = [
   { id: 'favorites', label: 'Favoritos', icon: Heart },
@@ -24,11 +24,17 @@ export function ProfilePageClient() {
   const user = session?.user
 
   const { favoriteIds } = useFavoritesStore()
-  const { orders } = useCartStore()
+  const [orderCount, setOrderCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/user/orders')
+      .then(res => res.json())
+      .then(data => setOrderCount(data.orders?.length ?? 0))
+  }, [])
 
   const counts: Record<string, number> = {
     favorites: favoriteIds.length,
-    orders: orders.length,
+    orders: orderCount,
   }
 
   const initials = user?.name
@@ -83,20 +89,14 @@ export function ProfilePageClient() {
         <Separator className="my-5" />
 
         {/* Estatísticas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 rounded-2xl bg-[var(--color-surface-2)]">
             <p className="text-2xl font-black text-[var(--color-brand)]">{favoriteIds.length}</p>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Favoritos</p>
           </div>
           <div className="text-center p-3 rounded-2xl bg-[var(--color-surface-2)]">
-            <p className="text-2xl font-black text-[var(--color-brand)]">{orders.length}</p>
+            <p className="text-2xl font-black text-[var(--color-brand)]">{orderCount}</p>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Pedidos</p>
-          </div>
-          <div className="text-center p-3 rounded-2xl bg-[var(--color-surface-2)] col-span-2 sm:col-span-1">
-            <p className="text-2xl font-black text-[var(--color-brand)]">
-              {orders.reduce((acc, o) => acc + o.items.reduce((a, i) => a + i.quantity, 0), 0)}
-            </p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Pratos pedidos</p>
           </div>
         </div>
       </div>
