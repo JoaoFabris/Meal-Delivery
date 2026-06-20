@@ -17,13 +17,7 @@ export async function GET(request: NextRequest) {
       where: currentUser.role === 'ADMIN' ? {} : { userId: currentUser.userId },
       include: {
         user: { select: { id: true, name: true, email: true } },
-        items: {
-          include: {
-            meal: {
-              select: { id: true, name: true, imageUrl: true, price: true },
-            },
-          },
-        },
+        items: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -72,11 +66,7 @@ export async function POST(request: NextRequest) {
         items: { create: orderItems },
       },
       include: {
-        items: {
-          include: {
-            meal: { select: { id: true, name: true, imageUrl: true } },
-          },
-        },
+        items: true,
       },
     });
 
