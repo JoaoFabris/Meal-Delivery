@@ -13,6 +13,12 @@ export async function GET() {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
+    console.log(
+      '[favorites] email:',
+      session.user.email,
+      'user found:',
+      !!user,
+    );
     if (!user) return NextResponse.json({ favorites: [] });
 
     const favorites = await prisma.favorite.findMany({
