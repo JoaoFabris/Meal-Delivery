@@ -20,7 +20,7 @@ const TABS = [
 export function ProfilePageClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const activeTab = searchParams.get('tab') ?? 'favorites'
+  const activeTab = searchParams.get('tab') ?? 'profile'
 
   const { data: session } = useSession()
   const user = session?.user
