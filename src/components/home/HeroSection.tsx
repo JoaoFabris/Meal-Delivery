@@ -1,14 +1,60 @@
+// src/components/home/HeroSection.tsx
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useRef, useEffect } from 'react'
 import { SearchBar } from '@/components/meal/SearchBar'
+import { useCountUp } from '@/hooks/useCountUp'
+
+const stats = [
+    { label: 'Pratos', value: 200, suffix: '+' },
+    { label: 'Categorias', value: 14, suffix: '' },
+    { label: 'Países', value: 30, suffix: '+' },
+]
+
+function AnimatedStat({ label, value, suffix, delay }: {
+    label: string; value: number; suffix: string; delay: number
+}) {
+    const ref = useRef<HTMLDivElement>(null)
+    const { count, start } = useCountUp(value, 1400)
+
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+
+        // scroll reveal
+        el.style.opacity = '0'
+        el.style.transform = 'translateY(16px)'
+        el.style.transition = `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                el.style.opacity = '1'
+                el.style.transform = 'translateY(0)'
+                // dispara o contador quando fica visível
+                setTimeout(() => start(), delay)
+                observer.disconnect()
+            }
+        }, { threshold: 0.3 })
+
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [delay, start])
+
+    return (
+        <div ref={ref} className="text-center relative">
+            <p className="text-2xl font-black drop-shadow-sm tabular-nums">
+                {count}{suffix}
+            </p>
+            <p className="text-xs opacity-70 font-medium">{label}</p>
+        </div>
+    )
+}
 
 export function HeroSection() {
     return (
         <section className="relative rounded-3xl overflow-hidden text-white text-center min-h-[320px] flex items-center justify-center">
-            {/* Fundo animado */}
+            {/* Fundo animado — sem alterações */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#c0392b] via-[var(--color-brand)] to-[#ff6b35]">
-                {/* Ondas animadas */}
                 <div className="absolute inset-0 opacity-20">
                     <div className="absolute top-0 left-0 w-full h-full"
                         style={{
@@ -18,17 +64,12 @@ export function HeroSection() {
                         }}
                     />
                 </div>
-
-                {/* Bolhas animadas */}
                 <div className="absolute top-8 left-8 w-32 h-32 rounded-full bg-white/10 animate-pulse" />
                 <div className="absolute top-4 right-16 w-20 h-20 rounded-full bg-white/10 animate-pulse" style={{ animationDelay: '0.5s' }} />
                 <div className="absolute bottom-8 left-24 w-16 h-16 rounded-full bg-white/10 animate-pulse" style={{ animationDelay: '1s' }} />
                 <div className="absolute bottom-4 right-8 w-24 h-24 rounded-full bg-white/10 animate-pulse" style={{ animationDelay: '1.5s' }} />
                 <div className="absolute top-1/2 left-4 w-10 h-10 rounded-full bg-white/10 animate-pulse" style={{ animationDelay: '0.8s' }} />
-
-                {/* Grade de pontos */}
-                <div
-                    className="absolute inset-0 opacity-15"
+                <div className="absolute inset-0 opacity-15"
                     style={{
                         backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
                         backgroundSize: '28px 28px',
@@ -52,25 +93,22 @@ export function HeroSection() {
                     Explore centenas de pratos do mundo todo, entregues até você com rapidez e sabor.
                 </p>
 
-                {/* SearchBar */}
                 <div className="mx-auto max-w-md pt-1">
                     <Suspense>
                         <SearchBar hero />
                     </Suspense>
                 </div>
 
-                {/* Stats */}
+                {/* Stats com contador animado */}
                 <div className="flex items-center justify-center gap-8 pt-3">
-                    {[
-                        { label: 'Pratos', value: '200+' },
-                        { label: 'Categorias', value: '14' },
-                        { label: 'Países', value: '30+' },
-                    ].map(({ label, value }, i) => (
-                        <div key={label} className="text-center">
-                            {i > 0 && <div className="absolute -left-4 top-1/2 -translate-y-1/2 h-6 w-px bg-white/30" />}
-                            <p className="text-2xl font-black drop-shadow-sm">{value}</p>
-                            <p className="text-xs opacity-70 font-medium">{label}</p>
-                        </div>
+                    {stats.map(({ label, value, suffix }, i) => (
+                        <AnimatedStat
+                            key={label}
+                            label={label}
+                            value={value}
+                            suffix={suffix}
+                            delay={i * 150}
+                        />
                     ))}
                 </div>
             </div>
