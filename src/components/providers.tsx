@@ -27,7 +27,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SessionProvider>
             <FavoritesSyncer />
             {children}
-            <Toaster position="top-right" richColors />
+            <Toaster
+                position="bottom-center"
+                richColors
+                toastOptions={{
+                    style: {
+                        background: 'white',
+                    },
+                }}
+            />
         </SessionProvider>
     )
 }
