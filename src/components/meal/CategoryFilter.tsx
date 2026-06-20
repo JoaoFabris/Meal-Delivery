@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef } from 'react';
+import { Check } from 'lucide-react';
 import { Category } from '@/types/meal.types';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +17,6 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
   const active = searchParams.get('category') ?? 'Todas';
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Drag to scroll
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
@@ -39,7 +39,7 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
 
   function handleSelect(category: string) {
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('search')
+    params.delete('search');
     if (category === 'Todas' || category === active) {
       params.delete('category');
     } else {
@@ -56,7 +56,8 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
   return (
     <div
       ref={scrollRef}
-      className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pr-4 cursor-grab active:cursor-grabbing select-none"
+      // py-2 garante espaço vertical para o scale-105 não ser cortado
+      className="flex gap-3 overflow-x-auto scrollbar-hide py-2 pb-3 cursor-grab active:cursor-grabbing select-none"
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -69,27 +70,52 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
             key={cat.idCategory}
             onClick={() => handleSelect(cat.strCategory)}
             className={cn(
-              'flex-shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 border',
+              // overflow-hidden removido daqui — cada camada interna tem seu próprio rounded
+              'flex-shrink-0 relative rounded-2xl transition-all duration-300 group w-28 h-28',
               isActive
-                ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)] shadow-sm'
-                : 'bg-white text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]'
+                ? 'ring-2 ring-[var(--color-brand)] ring-inset scale-105 shadow-xl shadow-[var(--color-brand)]/25'
+                : 'hover:scale-105 hover:shadow-lg hover:shadow-black/15'
             )}
           >
+            {/* Fundo */}
             {cat.strCategoryThumb ? (
-              <Image
-                src={cat.strCategoryThumb}
-                alt={cat.strCategory}
-                width={28}
-                height={28}
-                className={cn(
-                  'rounded-full object-cover flex-shrink-0',
-                  isActive && 'brightness-0 invert'
-                )}
-              />
+              // overflow-hidden + rounded-2xl movidos para cá
+              <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                <Image
+                  src={cat.strCategoryThumb}
+                  alt={cat.strCategory}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  sizes="112px"
+                />
+              </div>
             ) : (
-              <span className="text-lg leading-none">🍽️</span>
+              <div className="absolute inset-0 rounded-2xl overflow-hidden bg-gradient-to-br from-[var(--color-brand)] to-[#ff6b35] flex items-center justify-center text-4xl">
+                🍽️
+              </div>
             )}
-            {cat.strCategory}
+
+            {/* Overlay — rounded-2xl adicionado para seguir o recorte */}
+            <div className={cn(
+              'absolute inset-0 rounded-2xl transition-all duration-300',
+              isActive
+                ? 'bg-gradient-to-t from-black/75 via-black/20 to-[var(--color-brand)]/20'
+                : 'bg-gradient-to-t from-black/65 via-black/10 to-transparent group-hover:from-black/75'
+            )} />
+
+            {/* Checkmark quando ativo */}
+            {isActive && (
+              <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-[var(--color-brand)] flex items-center justify-center shadow-md">
+                <Check className="h-3 w-3 text-white stroke-[3]" />
+              </div>
+            )}
+
+            {/* Nome */}
+            <div className="absolute bottom-0 inset-x-0 px-2 pb-2.5 pt-4 bg-gradient-to-t from-black/60 to-transparent rounded-b-2xl">
+              <p className="text-white text-[11px] font-bold text-center leading-tight drop-shadow">
+                {cat.strCategory}
+              </p>
+            </div>
           </button>
         );
       })}
