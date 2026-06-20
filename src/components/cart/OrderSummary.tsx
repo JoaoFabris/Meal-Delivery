@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/utils';
 import { LogIn } from 'lucide-react';
 import { CheckCircle2, Loader2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
-import { validateSessionForOrder } from '@/app/cart/actions';
+import { validateSessionForOrder, createOrder } from '@/app/cart/actions';
 
 const DELIVERY_FEE = 0;
 const DISCOUNT_CODE = 'FOODAPP10';
@@ -48,9 +48,15 @@ export function OrderSummary() {
       return;
     }
 
-    checkout();
-    setLoading(false);
-    router.push('/cart/success');
+    try {
+      await createOrder(items, total);
+      checkout();
+      router.push('/cart/success');
+    } catch {
+      toast.error('Erro ao finalizar pedido. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   }
   const isLoggedIn = status === 'authenticated';
 
