@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { FavoritesTab } from '@/components/profile/FavoritesTab'
 import { OrdersTab } from '@/components/profile/OrdersTab'
 import { useFavoritesStore } from '@/lib/store/favorites.store'
+import { ProfileTab } from '@/components/profile/ProfileTab'
 import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
@@ -13,6 +14,7 @@ import { useEffect, useState } from 'react'
 const TABS = [
   { id: 'favorites', label: 'Favoritos', icon: Heart },
   { id: 'orders', label: 'Pedidos', icon: ClipboardList },
+  { id: 'profile', label: 'Perfil', icon: User },
 ]
 
 export function ProfilePageClient() {
@@ -139,6 +141,7 @@ export function ProfilePageClient() {
 
         {activeTab === 'favorites' && <FavoritesTab />}
         {activeTab === 'orders' && <OrdersTab />}
+        {activeTab === 'profile' && <ProfileTab />}
       </div>
     </div>
   )
