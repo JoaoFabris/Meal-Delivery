@@ -43,7 +43,7 @@ export function CartSheet() {
                 </button>
             </SheetTrigger>
 
-            <SheetContent className="flex flex-col w-full sm:max-w-md p-0">
+            <SheetContent className="flex flex-col w-full sm:max-w-md p-0 bg-white">
                 <SheetHeader className="px-6 pt-6 pb-4 border-b">
                     <SheetTitle className="flex items-center gap-2">
                         <ShoppingBag className="h-5 w-5 text-[var(--color-brand)]" />
