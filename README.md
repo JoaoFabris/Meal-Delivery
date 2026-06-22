@@ -184,7 +184,7 @@ src/__tests__/
 | Functions  | **96.5%** | 80% ✅         |
 | Lines      | **97.6%** | 80% ✅         |
 
-> **245 testes** | **18 suites** | **2 projetos** (backend + frontend)
+> **241 testes** | **18 suites** | **2 projetos** (backend + frontend)
 
 ### Estratégias utilizadas
 
@@ -210,7 +210,7 @@ Job 1 — Testes e Cobertura (~1m 20s)
     ├── Instala dependências (npm ci)
     ├── Gera Prisma Client
     ├── Aplica migrações no banco de teste
-    ├── Executa os 245 testes com cobertura
+    ├── Executa os 241 testes com cobertura
     └── Publica relatório de cobertura como artefato
             │
             ▼ (se passou)
@@ -442,3 +442,33 @@ users ──────────< orders >────────── ord
 | Jest                  | 30+      | Testes unitários e de integração          |
 | React Testing Library | —        | Testes de componentes                     |
 | GitHub Actions        | —        | CI/CD automatizado                        |
+
+## 🤖 Assistente de Recomendação com IA
+
+O FoodApp conta com um widget de chat flutuante powered by **Groq (LLaMA 3.3 70B)** que recomenda pratos personalizados para cada usuário.
+
+### Funcionalidades
+
+- Recomendações baseadas no cardápio real do banco de dados
+- Contexto personalizado: nome do usuário, histórico de pedidos e favoritos
+- Streaming de resposta em tempo real
+- Usuários não logados veem uma mensagem convidando ao login
+
+### Como funciona
+
+### Como funciona
+
+```
+Usuário → Widget flutuante (client)
+        → POST /api/chat/recommend (server-side, autenticado)
+        → Groq API com cardápio + contexto do usuário como system prompt
+        → Resposta streamada de volta ao widget
+```
+
+Adicione no `.env`:
+
+```env
+GROQ_API_KEY=gsk_sua_chave_groq_aqui
+```
+
+> A chave é obtida em [console.groq.com](https://console.groq.com). O nome da variável é `XAI_API_KEY` por compatibilidade com o código existente.
