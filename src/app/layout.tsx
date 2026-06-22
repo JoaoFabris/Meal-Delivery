@@ -3,6 +3,7 @@ import { Sora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Header } from '@/components/layout/Header'
+import { AIChatWidget } from '@/components/chat/AIChatWidget'
 
 const sora = Sora({
   subsets: ['latin'],
@@ -33,6 +34,7 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${sora.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <Providers>
+          <AIChatWidget />
           <Header />
           <main className="min-h-screen">{children}</main>
         </Providers>
