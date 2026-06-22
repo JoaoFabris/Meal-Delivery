@@ -1,34 +1,50 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
+const INITIAL_MESSAGE: Message = {
+  role: "assistant",
+  content: "Olá! 👋 Sou seu assistente de pratos. Me diga o que você está com vontade de comer e eu recomendo algo do nosso cardápio!",
+};
+
+const LOGIN_MESSAGE: Message = {
+  role: "assistant",
+  content: "Para receber recomendações personalizadas, você precisa estar logado. 🔐\n\nFaça login para continuar!",
+};
+
 export function AIChatWidget() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const isLoggedIn = status === "authenticated" && !!session?.user;
+
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Olá! 👋 Sou seu assistente de pratos. Me diga o que você está com vontade de comer e eu recomendo algo do nosso cardápio!",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Atualiza mensagem inicial conforme status de login
+  useEffect(() => {
+    setMessages([isLoggedIn ? INITIAL_MESSAGE : LOGIN_MESSAGE]);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   useEffect(() => {
-    if (open) {
+    if (open && isLoggedIn) {
       setTimeout(() => inputRef.current?.focus(), 150);
     }
-  }, [open]);
+  }, [open, isLoggedIn]);
 
   async function sendMessage() {
     const text = input.trim();
@@ -40,7 +56,6 @@ export function AIChatWidget() {
     setInput("");
     setLoading(true);
 
-    // Histórico excluindo a mensagem inicial do assistente
     const history = newMessages.slice(1).map((m) => ({
       role: m.role,
       content: m.content,
@@ -59,7 +74,6 @@ export function AIChatWidget() {
       const decoder = new TextDecoder();
       let assistantText = "";
 
-      // Adiciona mensagem vazia do assistente para ir preenchendo
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       while (reader) {
@@ -140,13 +154,11 @@ export function AIChatWidget() {
         }}
       >
         {open ? (
-          // X icon
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
-          // Chef hat / sparkle icon
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a5 5 0 0 1 5 5c0 1.5-.6 2.8-1.6 3.8L15 20H9l-.4-9.2A5 5 0 0 1 7 7a5 5 0 0 1 5-5z" />
             <line x1="9" y1="20" x2="15" y2="20" />
@@ -204,7 +216,7 @@ export function AIChatWidget() {
                 Assistente Culinário
               </div>
               <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "11px" }}>
-                Recomendações personalizadas
+                {isLoggedIn ? "Recomendações personalizadas" : "Faça login para continuar"}
               </div>
             </div>
           </div>
@@ -248,6 +260,31 @@ export function AIChatWidget() {
               </div>
             ))}
 
+            {/* Botão de login quando não autenticado */}
+            {!isLoggedIn && status !== "loading" && (
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <button
+                  onClick={() => router.push("/login")}
+                  style={{
+                    padding: "10px 20px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #f97316, #ea580c)",
+                    color: "#fff",
+                    fontSize: "13.5px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(249,115,22,0.35)",
+                    transition: "opacity 0.15s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
+                  Fazer login →
+                </button>
+              </div>
+            )}
+
             {/* Indicador de digitação */}
             {loading && (
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
@@ -282,64 +319,78 @@ export function AIChatWidget() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
-          <div
-            style={{
-              padding: "12px 14px",
-              borderTop: "1px solid #f0f0f0",
-              display: "flex",
-              gap: "8px",
-              background: "#fff",
-            }}
-          >
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ex: quero algo leve e barato..."
-              disabled={loading}
+          {/* Input — só aparece se logado */}
+          {isLoggedIn ? (
+            <div
               style={{
-                flex: 1,
-                border: "1.5px solid #e5e7eb",
-                borderRadius: "10px",
-                padding: "9px 13px",
-                fontSize: "13.5px",
-                outline: "none",
-                transition: "border-color 0.15s",
-                color: "#1a1a1a",
-                background: loading ? "#f9f9f9" : "#fff",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#f97316")}
-              onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={loading || !input.trim()}
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                border: "none",
-                background: loading || !input.trim() ? "#e5e7eb" : "linear-gradient(135deg, #f97316, #ea580c)",
-                cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                padding: "12px 14px",
+                borderTop: "1px solid #f0f0f0",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "background 0.15s",
+                gap: "8px",
+                background: "#fff",
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
-          </div>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ex: quero algo leve e barato..."
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  border: "1.5px solid #e5e7eb",
+                  borderRadius: "10px",
+                  padding: "9px 13px",
+                  fontSize: "13.5px",
+                  outline: "none",
+                  transition: "border-color 0.15s",
+                  color: "#1a1a1a",
+                  background: loading ? "#f9f9f9" : "#fff",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "#f97316")}
+                onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: loading || !input.trim() ? "#e5e7eb" : "linear-gradient(135deg, #f97316, #ea580c)",
+                  cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "background 0.15s",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: "10px 14px",
+                borderTop: "1px solid #f0f0f0",
+                background: "#fff",
+                textAlign: "center",
+                fontSize: "11px",
+                color: "#9ca3af",
+              }}
+            >
+              Recomendações personalizadas para usuários logados
+            </div>
+          )}
         </div>
       )}
 
-      {/* Animações */}
       <style>{`
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(16px) scale(0.97); }
