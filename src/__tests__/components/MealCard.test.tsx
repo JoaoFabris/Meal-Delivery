@@ -25,7 +25,10 @@ jest.mock('@/lib/store/cart.store', () => ({
 jest.mock('sonner', () => ({
     toast: Object.assign(
         (...args: unknown[]) => mockToast(...args),
-        { success: (...args: unknown[]) => mockToast('success', ...args) }
+        {
+            success: (...args: unknown[]) => mockToast('success', ...args),
+            error: (...args: unknown[]) => mockToast('error', ...args),
+        }
     ),
 }))
 
@@ -42,6 +45,14 @@ jest.mock('next/image', () => ({
         // eslint-disable-next-line @next/next/no-img-element
         return <img {...props} alt={props.alt} />
     },
+}))
+
+jest.mock('next-auth/react', () => ({
+    useSession: () => ({ data: { user: { email: 'test@test.com' } }, status: 'authenticated' }),
+}))
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: jest.fn() }),
 }))
 
 // ── Fixture ───────────────────────────────────────────────
@@ -170,7 +181,8 @@ describe('MealCard — botão de adicionar ao carrinho', () => {
     it('deve chamar addItem ao clicar em adicionar ao carrinho', () => {
         render(<MealCard meal={mealFixture} />)
 
-        fireEvent.click(screen.getByLabelText('Adicionar ao carrinho'))
+        const buttons = screen.getAllByLabelText('Adicionar ao carrinho')
+        fireEvent.click(buttons[buttons.length - 1])
 
         expect(mockAddItem).toHaveBeenCalledWith(mealFixture, 1)
     })
@@ -178,7 +190,8 @@ describe('MealCard — botão de adicionar ao carrinho', () => {
     it('deve mostrar toast de sucesso ao adicionar ao carrinho', () => {
         render(<MealCard meal={mealFixture} />)
 
-        fireEvent.click(screen.getByLabelText('Adicionar ao carrinho'))
+        const buttons = screen.getAllByLabelText('Adicionar ao carrinho')
+        fireEvent.click(buttons[buttons.length - 1])
 
         expect(mockToast).toHaveBeenCalledWith(
             'success',
