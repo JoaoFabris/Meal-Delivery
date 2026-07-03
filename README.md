@@ -1,6 +1,8 @@
 # 🍔 FoodApp
 
-Aplicação full-stack de pedidos de refeições desenvolvida como parte das **Atividades 2 e 3 — PPE III**.
+Aplicação full-stack de pedidos de refeições desenvolvida como parte das **Atividades 2, 3 e 4 — PPE III**.
+
+**O problema que resolve:** centraliza o processo de pedido de refeições — cardápio, carrinho, checkout, acompanhamento de status e gestão administrativa de pedidos — em um único fluxo web, com autenticação segura e uma API REST própria que pode ser consumida por outros clientes (mobile, integrações, etc).
 
 Combina uma interface web moderna com uma API RESTful completa, autenticação dupla (Google OAuth + e-mail/senha com JWT), banco de dados PostgreSQL via Prisma ORM, recuperação de senha por e-mail, controle de acesso por papel (USER / ADMIN), suíte de testes automatizados e pipeline de CI/CD com GitHub Actions.
 
@@ -296,6 +298,8 @@ POST /api/password/reset
 
 ## 📡 Endpoints da API
 
+> Documentação interativa completa (parâmetros, exemplos de requisição/resposta e códigos de status) disponível em [`/api-docs`](#-documentação-adicional) via Swagger/OpenAPI.
+
 ### 🔑 Auth
 
 | Método | Endpoint               | Descrição           | Auth |
@@ -443,6 +447,8 @@ users ──────────< orders >────────── ord
 | React Testing Library | —        | Testes de componentes                     |
 | GitHub Actions        | —        | CI/CD automatizado                        |
 
+---
+
 ## 🤖 Assistente de Recomendação com IA
 
 O FoodApp conta com um widget de chat flutuante powered by **Groq (LLaMA 3.3 70B)** que recomenda pratos personalizados para cada usuário.
@@ -453,8 +459,6 @@ O FoodApp conta com um widget de chat flutuante powered by **Groq (LLaMA 3.3 70B
 - Contexto personalizado: nome do usuário, histórico de pedidos e favoritos
 - Streaming de resposta em tempo real
 - Usuários não logados veem uma mensagem convidando ao login
-
-### Como funciona
 
 ### Como funciona
 
@@ -472,3 +476,62 @@ GROQ_API_KEY=gsk_sua_chave_groq_aqui
 ```
 
 > A chave é obtida em [console.groq.com](https://console.groq.com). O nome da variável é `XAI_API_KEY` por compatibilidade com o código existente.
+
+---
+
+## 🤝 Fluxo de Contribuição e Boas Práticas
+
+### Branches
+
+- `main` — código estável, em produção. Protegida; só recebe merge via PR aprovado.
+- `dev` — branch de integração para features em desenvolvimento.
+- `feature/<nome-curto>` — uma branch por funcionalidade, criada a partir de `dev` (ex.: `feature/favoritos`, `feature/swagger-docs`).
+- `fix/<nome-curto>` — correções pontuais de bugs.
+
+### Fluxo de trabalho
+
+```
+1. git checkout dev && git pull
+2. git checkout -b feature/minha-feature
+3. Desenvolver + escrever/atualizar testes
+4. npm run lint        # sem erros
+5. npm test -- --coverage   # cobertura ≥ 80% mantida
+6. git commit -m "feat: descrição curta"
+7. git push origin feature/minha-feature
+8. Abrir Pull Request para dev
+9. CI (GitHub Actions) precisa passar (testes + build)
+10. Revisão de código antes do merge
+```
+
+### Padrão de commits
+
+Convenção baseada em [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefixo     | Uso                                      |
+| ----------- | ---------------------------------------- |
+| `feat:`     | Nova funcionalidade                      |
+| `fix:`      | Correção de bug                          |
+| `test:`     | Adição ou ajuste de testes               |
+| `docs:`     | Alterações em documentação               |
+| `refactor:` | Refatoração sem mudança de comportamento |
+| `chore:`    | Tarefas de manutenção (deps, configs)    |
+
+### Boas práticas do projeto
+
+- Nenhum PR é mergeado com o pipeline de CI quebrado.
+- Cobertura de testes não pode cair abaixo de 80% (statements/branches/functions/lines).
+- Validação de entrada sempre via schemas Zod (`lib/validations.ts`).
+- Erros de API sempre lançados como classes customizadas de `lib/errors` e tratados pelo `errorHandler` central — nunca `throw` genérico numa rota.
+- Regras de acesso (`requireAuth` / `requireAdmin`) aplicadas no middleware, não replicadas manualmente em cada rota.
+
+---
+
+## 📚 Documentação Adicional
+
+| Recurso                                                        | Link                                                                                               |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 📖 Documentação técnica (manual do usuário, fluxos, diagramas) | [`/docs`](./docs)                                                                                  |
+| 🔌 Documentação da API (Swagger/OpenAPI)                       | `/api-docs` (servidor rodando)                                                                     |
+| 🎞️ Slides da apresentação final                                | _(adicionar link)_                                                                                 |
+| 🎥 Vídeo de apresentação (até 10 min)                          | _(adicionar link)_                                                                                 |
+| ⚙️ Pipeline CI/CD                                              | [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions) |
