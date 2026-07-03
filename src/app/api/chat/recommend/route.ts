@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { searchMealsByName, getCategories } from '@/lib/api/mealdb';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,79 +12,81 @@ export async function POST(req: NextRequest) {
 
     const { message, history } = await req.json();
 
-    // Busca dados do usuário + pedidos + favoritos
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        orders: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          include: {
-            items: true,
-          },
-        },
-        favorites: true,
-      },
-    });
+    const categories = await getCategories();
+    const categoryNames = categories.map((c) => c.strCategory).join(', ');
 
-    // Busca todos os pratos disponíveis
-    const meals = await prisma.meal.findMany({
-      where: { available: true },
-      orderBy: { category: 'asc' },
-    });
+    // Limpa emojis e caracteres especiais
+    const cleanMessage = message
+      .replace(/[\u{1F300}-\u{1FFFF}]/gu, '')
+      .replace(/[^\w\sáéíóúãõâêîôûàèìòùç]/g, '')
+      .trim();
 
-    // IDs dos favoritos para enriquecer contexto
-    const favoriteMealIds = new Set(user?.favorites.map((f) => f.mealId) ?? []);
+    // Mapeia termos em português para inglês (MealDB é em inglês)
+    const keywordMap: Record<string, string> = {
+      frango: 'chicken',
+      peixe: 'fish',
+      salmão: 'salmon',
+      atum: 'tuna',
+      massa: 'pasta',
+      macarrão: 'pasta',
+      lasanha: 'lasagna',
+      pizza: 'pizza',
+      leve: 'salad',
+      salada: 'salad',
+      sobremesa: 'cake',
+      bolo: 'cake',
+      doce: 'dessert',
+      sorvete: 'ice cream',
+      carne: 'beef',
+      bife: 'steak',
+      porco: 'pork',
+      cordeiro: 'lamb',
+      'frutos do mar': 'seafood',
+      camarão: 'prawn',
+      vegetariano: 'vegetable',
+      vegano: 'vegan',
+      sopa: 'soup',
+      arroz: 'rice',
+    };
 
-    // Cardápio formatado para o system prompt
-    const menuText = meals
-      .map((meal) => {
-        const isFav = favoriteMealIds.has(meal.id)
-          ? ' ⭐ (favorito do usuário)'
-          : '';
-        return `- [${meal.category}] ${meal.name}${isFav}: ${meal.description ?? 'sem descrição'} | R$ ${meal.price.toFixed(2)}`;
-      })
+    const lowerMessage = cleanMessage.toLowerCase();
+    let searchTerm = cleanMessage;
+
+    for (const [pt, en] of Object.entries(keywordMap)) {
+      if (lowerMessage.includes(pt)) {
+        searchTerm = en;
+        break;
+      }
+    }
+
+    const searchResults = await searchMealsByName(searchTerm.slice(0, 30));
+    const mealsText = searchResults
+      .slice(0, 8)
+      .map((m) => `- ${m.strMeal} (ID: ${m.idMeal})`)
       .join('\n');
 
-    // Histórico de pedidos formatado
-    const orderHistory =
-      user?.orders
-        .map((order) => {
-          const items = order.items
-            .map((item) => {
-              const meal = meals.find((m) => m.id === item.mealId);
-              return `${meal?.name ?? 'Prato desconhecido'} (x${item.quantity})`;
-            })
-            .join(', ');
-          return `Pedido em ${order.createdAt.toLocaleDateString('pt-BR')}: ${items} — Total: R$ ${order.total.toFixed(2)}`;
-        })
-        .join('\n') ?? 'Nenhum pedido anterior.';
+    const systemPrompt = `Você é um assistente culinário simpático e especialista do FoodApp.
+Seu objetivo é ajudar o usuário a encontrar pratos do cardápio.
 
-    const systemPrompt = `Você é um assistente culinário simpático e especialista do restaurante "Meal Delivery".
-Seu único objetivo é ajudar o usuário a escolher pratos do cardápio com base nas preferências, histórico e descrição dos itens.
+USUÁRIO ATUAL: ${session.user.name ?? 'Cliente'}
 
-USUÁRIO ATUAL:
-- Nome: ${user?.name ?? 'Cliente'}
-- Email: ${session.user.email}
+CATEGORIAS DISPONÍVEIS: ${categoryNames}
 
-CARDÁPIO DISPONÍVEL:
-${menuText}
-
-HISTÓRICO DE PEDIDOS RECENTES:
-${orderHistory}
+PRATOS ENCONTRADOS PARA O CONTEXTO:
+${mealsText || 'Nenhum prato específico encontrado — sugira categorias disponíveis.'}
 
 INSTRUÇÕES:
-- Recomende pratos com base no que o usuário pede, descreve ou prefere.
-- Priorize pratos favoritos (marcados com ⭐) quando fizer sentido.
-- Nunca invente pratos que não estão no cardápio.
+- Recomende apenas pratos reais listados acima.
+- Nunca invente pratos que não estão na lista.
+- Para cada prato recomendado, use EXATAMENTE este formato: [Nome do Prato](/meal/ID)
+  Exemplo: [Mediterranean Pasta Salad](/meal/52772)
 - Seja conciso, amigável e use emojis com moderação.
 - Responda sempre em português (Brasil).
+- Se não encontrar pratos relevantes, sugira as categorias disponíveis.
 - Se o usuário perguntar algo fora do contexto de comida, redirecione gentilmente.`;
 
-    // Histórico de conversa para a API
     const messages = [...(history ?? []), { role: 'user', content: message }];
 
-    // Chamada para a API do Grok (xAI) com streaming
     const grokResponse = await fetch(
       'https://api.groq.com/openai/v1/chat/completions',
       {
@@ -110,7 +112,6 @@ INSTRUÇÕES:
       );
     }
 
-    // Repassa o stream diretamente para o cliente
     return new NextResponse(grokResponse.body, {
       headers: {
         'Content-Type': 'text/event-stream',

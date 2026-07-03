@@ -19,6 +19,14 @@ const LOGIN_MESSAGE: Message = {
   content: "Para receber recomendações personalizadas, você precisa estar logado. 🔐\n\nFaça login para continuar!",
 };
 
+const QUICK_SUGGESTIONS = [
+  "🍗 Algo com frango",
+  "🐟 Prato com peixe",
+  "🍝 Massa italiana",
+  "🥗 Algo leve",
+  "🍮 Sobremesa",
+]
+
 export function AIChatWidget() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -31,7 +39,6 @@ export function AIChatWidget() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Atualiza mensagem inicial conforme status de login
   useEffect(() => {
     setMessages([isLoggedIn ? INITIAL_MESSAGE : LOGIN_MESSAGE]);
   }, [isLoggedIn]);
@@ -123,6 +130,33 @@ export function AIChatWidget() {
     if (e.key === "Enter") sendMessage();
   }
 
+  function renderMessage(content: string) {
+    const parts = content.split(/(\[.*?\]\(\/meal\/\d+\))/g)
+    return parts.map((part, i) => {
+      const match = part.match(/\[(.*?)\]\((\/meal\/\d+)\)/)
+      if (match) {
+        return (
+          <a
+            key={i}
+            href={match[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: '#ea580c',
+              fontWeight: 700,
+              textDecoration: 'underline',
+              textDecorationColor: '#f97316',
+              cursor: 'pointer',
+            }}
+          >
+            {match[1]} →
+          </a>
+        )
+      }
+      return <span key={i}>{part}</span>
+    })
+  }
+
   return (
     <>
       {/* Botão flutuante */}
@@ -160,9 +194,7 @@ export function AIChatWidget() {
           </svg>
         ) : (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a5 5 0 0 1 5 5c0 1.5-.6 2.8-1.6 3.8L15 20H9l-.4-9.2A5 5 0 0 1 7 7a5 5 0 0 1 5-5z" />
-            <line x1="9" y1="20" x2="15" y2="20" />
-            <line x1="12" y1="12" x2="12" y2="15" />
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         )}
       </button>
@@ -216,7 +248,7 @@ export function AIChatWidget() {
                 Assistente Culinário
               </div>
               <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "11px" }}>
-                {isLoggedIn ? "Recomendações personalizadas" : "Faça login para continuar"}
+                {isLoggedIn ? `Olá, ${session?.user?.name?.split(' ')[0]}! Como posso ajudar?` : "Faça login para continuar"}
               </div>
             </div>
           </div>
@@ -255,10 +287,43 @@ export function AIChatWidget() {
                     wordBreak: "break-word",
                   }}
                 >
-                  {msg.content}
+                  <div>{renderMessage(msg.content)}</div>
                 </div>
               </div>
             ))}
+
+            {/* Sugestões rápidas — só na primeira mensagem */}
+            {messages.length === 1 && isLoggedIn && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {QUICK_SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { setInput(s); inputRef.current?.focus() }}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      border: "1.5px solid #f97316",
+                      background: "#fff7ed",
+                      color: "#ea580c",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f97316"
+                      e.currentTarget.style.color = "#fff"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#fff7ed"
+                      e.currentTarget.style.color = "#ea580c"
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Botão de login quando não autenticado */}
             {!isLoggedIn && status !== "loading" && (
