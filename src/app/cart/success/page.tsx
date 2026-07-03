@@ -83,19 +83,19 @@ export default function SuccessPage() {
                 <Button
                     asChild
                     variant="outline"
-                    className="flex-1 h-12 rounded-xl gap-2 border-[var(--color-border)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+                    className="flex-1 h-14 sm:h-12 text-base rounded-xl gap-2 border-[var(--color-border)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
                 >
                     <Link href="/profile?tab=orders">
-                        <ClipboardList className="h-4 w-4" />
+                        <ClipboardList className="h-5 w-5 sm:h-4 sm:w-4" />
                         Ver meus pedidos
                     </Link>
                 </Button>
                 <Button
                     asChild
-                    className="flex-1 h-12 rounded-xl gap-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)]"
+                    className="flex-1 h-14 sm:h-12 text-base rounded-xl gap-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)]"
                 >
                     <Link href="/">
-                        <Home className="h-4 w-4" />
+                        <Home className="h-5 w-5 sm:h-4 sm:w-4" />
                         Voltar ao início
                     </Link>
                 </Button>

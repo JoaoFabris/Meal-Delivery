@@ -105,7 +105,7 @@ export function ProfilePageClient() {
 
       {/* Tabs */}
       <div>
-        <div className="flex gap-1 p-1 bg-white rounded-2xl border border-[var(--color-border)] w-fit mb-6">
+        <div className="grid grid-cols-3 sm:flex sm:w-fit gap-1 p-1 bg-white rounded-2xl border border-[var(--color-border)] mb-6">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -114,18 +114,18 @@ export function ProfilePageClient() {
                 key={tab.id}
                 onClick={() => setTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+                  'flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap',
                   isActive
                     ? 'bg-[var(--color-brand)] text-white shadow-sm'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {tab.label}
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{tab.label}</span>
                 {counts[tab.id] > 0 && (
                   <span
                     className={cn(
-                      'flex h-5 min-w-5 items-center justify-center rounded-full text-[11px] font-bold px-1.5',
+                      'flex h-5 min-w-5 items-center justify-center rounded-full text-[11px] font-bold px-1.5 flex-shrink-0',
                       isActive
                         ? 'bg-white/20 text-white'
                         : 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)]'
