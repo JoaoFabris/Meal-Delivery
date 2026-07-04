@@ -166,3 +166,20 @@ Trade-offs considerados no projeto:
 
 - Acoplamento maior entre UI e API — escalar o backend independentemente do frontend exigiria separar os dois no futuro
 - API Routes do Next.js não são pensadas para altíssimo throughput como um serviço dedicado (Express/Fastify standalone) seria
+
+---
+
+## Ponto identificado para evolução futura: rotas duplicadas
+
+Durante a documentação da API (Swagger/OpenAPI), foi identificado que existem **hoje duas rotas paralelas** cobrindo praticamente a mesma responsabilidade:
+
+| Responsabilidade   | Rota "pública"/REST documentada | Rota efetivamente usada pela UI                              |
+| ------------------ | ------------------------------- | ------------------------------------------------------------ |
+| Pedidos do usuário | `GET /api/orders`               | `GET /api/user/orders`                                       |
+| Perfil do usuário  | `GET`/`PUT /api/users/me`       | `PUT /api/user/profile` (única com suporte a troca de senha) |
+
+**Causa provável:** evolução incremental do projeto — a rota `/api/user/*` foi criada e consumida diretamente pela interface, enquanto `/api/orders` e `/api/users/me` seguiram como a superfície de API REST "oficial", documentada desde o início.
+
+**Por que não foi corrigido nesta entrega:** o projeto já tem 241 testes automatizados cobrindo o comportamento atual dessas rotas (Atividade 3, 97%+ de cobertura). Unificar as rotas agora exigiria também atualizar os componentes que as consomem (`OrdersTab.tsx`, `ProfilePageClient.tsx`, `ProfileTab.tsx`) e a suíte de testes correspondente — risco desnecessário numa fase de fechamento de entrega, com uma suíte já validada e estável.
+
+**Próximo passo recomendado:** unificar em uma única rota por responsabilidade (provavelmente mantendo `/api/user/*`, já que é a que a UI realmente usa, e descontinuando `/api/orders`/`/api/users/me` ou redirecionando uma para a outra), acompanhado da atualização dos testes de integração correspondentes.
