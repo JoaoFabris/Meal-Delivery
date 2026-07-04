@@ -1,0 +1,1140 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FoodApp API",
+    "description": "API REST do FoodApp — pedidos de refeições, autenticação dupla (Google OAuth + credenciais), gerenciamento de pratos e pedidos. Consulte o README do projeto para instruções de setup.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "João Fabris",
+      "url": "https://github.com/JoaoFabris/Meal-Delivery"
+    }
+  },
+  "servers": [
+    { "url": "http://localhost:3000", "description": "Desenvolvimento local" }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Registro, login e recuperação de senha" },
+    { "name": "Meals", "description": "Cardápio de pratos" },
+    { "name": "Orders", "description": "Pedidos de usuários" },
+    {
+      "name": "Admin Orders",
+      "description": "Gerenciamento de pedidos (admin)"
+    },
+    { "name": "Users", "description": "Perfil e listagem de usuários" },
+    { "name": "Favorites", "description": "Pratos favoritados pelo usuário" },
+    {
+      "name": "Chat",
+      "description": "Assistente de recomendação por IA (Groq / LLaMA 3.3)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT obtido em POST /api/auth/login. Envie como 'Authorization: Bearer <token>'."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR"
+                ]
+              },
+              "message": { "type": "string" },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "SimpleError": {
+        "type": "object",
+        "description": "Formato de erro usado em /api/favorites, /api/chat/recommend, /api/user/orders e /api/user/profile — diferente do formato estruturado (Error) usado no restante da API. Ver nota em cada endpoint.",
+        "properties": {
+          "error": { "type": "string", "example": "Não autorizado" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "clx1a2b3c4d5" },
+          "name": { "type": "string", "example": "João Silva" },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "joao@email.com"
+          },
+          "role": { "type": "string", "enum": ["USER", "ADMIN"] },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Meal": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string", "example": "Lasanha à Bolonhesa" },
+          "description": { "type": "string", "nullable": true },
+          "price": { "type": "number", "format": "float", "example": 32.9 },
+          "category": { "type": "string", "example": "Pasta" },
+          "imageUrl": { "type": "string", "format": "uri", "nullable": true },
+          "available": { "type": "boolean" }
+        }
+      },
+      "OrderItemInput": {
+        "type": "object",
+        "required": ["mealId", "quantity"],
+        "properties": {
+          "mealId": { "type": "string", "example": "52977" },
+          "quantity": { "type": "integer", "minimum": 1, "example": 2 }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "mealId": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Preço unitário congelado no momento da compra"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "userId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "PREPARING",
+              "DELIVERED",
+              "CANCELLED"
+            ]
+          },
+          "total": { "type": "number", "format": "float" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OrderItem" }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Dados inválidos na requisição",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": {
+              "error": {
+                "type": "VALIDATION_ERROR",
+                "message": "Dados inválidos na requisição.",
+                "details": [{ "field": "email", "message": "E-mail inválido" }]
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Token ausente, inválido ou expirado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": {
+              "error": {
+                "type": "UNAUTHORIZED",
+                "message": "Acesso não autorizado. Faça login para continuar."
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Autenticado, mas sem permissão para o recurso",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": {
+              "error": {
+                "type": "FORBIDDEN",
+                "message": "Você não tem permissão para acessar este recurso."
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Recurso não encontrado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": {
+              "error": {
+                "type": "NOT_FOUND",
+                "message": "Recurso não encontrado."
+              }
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflito — ex. e-mail já cadastrado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": {
+              "error": {
+                "type": "CONFLICT",
+                "message": "E-mail já cadastrado."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Registrar novo usuário",
+        "description": "Cria uma conta com e-mail e senha. A senha é armazenada com hash bcrypt (custo 10). Retorna um token JWT já autenticado.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "description": "Mínimo 2 caracteres"
+                  },
+                  "email": { "type": "string", "format": "email" },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "description": "Mínimo 6 caracteres"
+                  }
+                }
+              },
+              "example": {
+                "name": "João Silva",
+                "email": "joao@email.com",
+                "password": "senha123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuário criado com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Usuário registrado com sucesso.",
+                  "user": {
+                    "id": "clx1a2b3c4d5",
+                    "name": "João Silva",
+                    "email": "joao@email.com",
+                    "role": "USER",
+                    "createdAt": "2026-07-01T10:00:00Z"
+                  },
+                  "token": "eyJhbGc..."
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login com e-mail e senha",
+        "description": "Autentica via credenciais e retorna um JWT próprio para consumo da API (independente da sessão do NextAuth usada no navegador).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 1 }
+                }
+              },
+              "example": { "email": "joao@email.com", "password": "senha123" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login realizado com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Login realizado com sucesso.",
+                  "user": {
+                    "id": "clx1a2b3c4d5",
+                    "name": "João Silva",
+                    "email": "joao@email.com",
+                    "role": "USER"
+                  },
+                  "token": "eyJhbGc..."
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/password/forgot": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Solicitar recuperação de senha",
+        "description": "Gera um token de reset (único, com expiração) e envia por e-mail via Resend. Em desenvolvimento, sem RESEND_API_KEY configurada, o link é exibido no terminal em vez de enviado por e-mail.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                }
+              },
+              "example": { "email": "joao@email.com" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitação processada (resposta genérica por segurança, mesmo se o e-mail não existir)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Se o e-mail existir, um link de recuperação foi enviado."
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/password/reset": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Redefinir senha com token",
+        "description": "Valida o token recebido por e-mail (não expirado, não usado) e atualiza a senha do usuário.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "password"],
+                "properties": {
+                  "token": { "type": "string" },
+                  "password": { "type": "string", "minLength": 6 }
+                }
+              },
+              "example": { "token": "abc123...", "password": "novaSenha123" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Senha redefinida com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "message": "Senha redefinida com sucesso." }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": {
+            "description": "Token inválido, expirado ou já utilizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meals": {
+      "get": {
+        "tags": ["Meals"],
+        "summary": "Listar pratos",
+        "description": "Retorna o cardápio, com filtros opcionais por categoria, busca por nome e disponibilidade.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": { "type": "string" },
+            "example": "Beef"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": { "type": "string" },
+            "example": "pizza"
+          },
+          {
+            "name": "available",
+            "in": "query",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de pratos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Meal" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Meals"],
+        "summary": "Criar prato",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requer papel ADMIN.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "price", "category"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 2 },
+                  "description": { "type": "string" },
+                  "price": { "type": "number", "exclusiveMinimum": 0 },
+                  "category": { "type": "string", "minLength": 1 },
+                  "imageUrl": { "type": "string", "format": "uri" },
+                  "available": { "type": "boolean", "default": true }
+                }
+              },
+              "example": {
+                "name": "Feijoada Completa",
+                "price": 45.9,
+                "category": "Brazilian",
+                "available": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Prato criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Meal" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/meals/{id}": {
+      "get": {
+        "tags": ["Meals"],
+        "summary": "Buscar prato por ID",
+        "description": "Busca primeiro no banco local; se não encontrado, consulta a API pública TheMealDB (ver docs/arquitetura.md).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prato encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Meal" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["Meals"],
+        "summary": "Atualizar prato",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requer papel ADMIN. Todos os campos são opcionais (atualização parcial).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 2 },
+                  "description": { "type": "string" },
+                  "price": { "type": "number", "exclusiveMinimum": 0 },
+                  "category": { "type": "string" },
+                  "imageUrl": { "type": "string", "format": "uri" },
+                  "available": { "type": "boolean" }
+                }
+              },
+              "example": { "price": 39.9, "available": false }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prato atualizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Meal" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Meals"],
+        "summary": "Remover prato",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requer papel ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prato removido",
+            "content": {
+              "application/json": {
+                "example": { "message": "Prato removido com sucesso." }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Listar pedidos do usuário autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Usuário comum vê apenas seus próprios pedidos.",
+        "responses": {
+          "200": {
+            "description": "Lista de pedidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Order" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Criar pedido",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Cria um pedido com um ou mais itens. O preço de cada item é congelado no momento da criação.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "$ref": "#/components/schemas/OrderItemInput" }
+                  }
+                }
+              },
+              "example": { "items": [{ "mealId": "52977", "quantity": 2 }] }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pedido criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Buscar pedido por ID",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Usuário só pode ver o próprio pedido; ADMIN pode ver qualquer pedido.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pedido encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Atualizar status do pedido",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Usuário comum pode atualizar apenas o próprio pedido; ADMIN pode atualizar qualquer um. Não há validação de transição de estado — qualquer status pode ser definido a partir de qualquer outro (ver docs/fluxos-de-trabalho.md).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "CONFIRMED",
+                      "PREPARING",
+                      "DELIVERED",
+                      "CANCELLED"
+                    ]
+                  }
+                }
+              },
+              "example": { "status": "CONFIRMED" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status atualizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/admin/orders": {
+      "get": {
+        "tags": ["Admin Orders"],
+        "summary": "Listar todos os pedidos (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requer papel ADMIN. Retorna pedidos de todos os usuários, usado no dashboard e na tela de gerenciamento.",
+        "responses": {
+          "200": {
+            "description": "Lista completa de pedidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Order" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/admin/orders/{id}": {
+      "put": {
+        "tags": ["Admin Orders"],
+        "summary": "Atualizar status de um pedido (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requer papel ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "CONFIRMED",
+                      "PREPARING",
+                      "DELIVERED",
+                      "CANCELLED"
+                    ]
+                  }
+                }
+              },
+              "example": { "status": "PREPARING" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status atualizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Ver meu perfil",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Retorna os dados do usuário identificado pelo token/sessão atual.",
+        "responses": {
+          "200": {
+            "description": "Dados do usuário autenticado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Atualizar meu perfil (sem troca de senha)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Nome é sempre editável. Alterar senha requer currentPassword + newPassword (fluxo tratado em /api/user/profile no front-end).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 2 },
+                  "email": { "type": "string", "format": "email" }
+                }
+              },
+              "example": { "name": "João Fabris Silva" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil atualizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Listar usuários",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requer papel ADMIN.",
+        "responses": {
+          "200": {
+            "description": "Lista de usuários",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/User" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/favorites": {
+      "get": {
+        "tags": ["Favorites"],
+        "summary": "Listar IDs dos pratos favoritados",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Retorna apenas os IDs (`mealId`) dos pratos favoritados pelo usuário autenticado, ordenados do mais recente para o mais antigo. Se o usuário não for encontrado no banco, retorna lista vazia com status 200 (não é tratado como erro).",
+        "responses": {
+          "200": {
+            "description": "Lista de IDs favoritados",
+            "content": {
+              "application/json": {
+                "example": { "favorites": ["52977", "52772"] }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Não autorizado" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Favorites"],
+        "summary": "Favoritar ou desfavoritar um prato (toggle)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Comportamento de toggle: se o prato já está favoritado pelo usuário, remove o favorito; caso contrário, adiciona. A resposta indica o novo estado (`favorited: true` ou `false`).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["mealId"],
+                "properties": { "mealId": { "type": "string" } }
+              },
+              "example": { "mealId": "52977" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado do favorito alterado",
+            "content": {
+              "application/json": { "example": { "favorited": true } }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Não autorizado" }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuário não encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Usuário não encontrado" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Listar meus pedidos (usado pelo front-end)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Endpoint efetivamente consumido pela interface (aba 'Pedidos' do perfil) para listar os pedidos do usuário autenticado, com os itens incluídos. Funcionalmente equivalente a GET /api/orders — mantido por ora como rota separada; ver observação no docs/troubleshooting.md sobre convergir os dois no futuro. Se o usuário não for encontrado, retorna lista vazia com status 200.",
+        "responses": {
+          "200": {
+            "description": "Lista de pedidos do usuário, com itens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orders": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Order" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Não autorizado" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/profile": {
+      "put": {
+        "tags": ["Users"],
+        "summary": "Atualizar perfil (nome e/ou senha) — usado pelo front-end",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Endpoint efetivamente consumido pela tela 'Editar perfil'. Diferente de PUT /api/users/me: este é o único que suporta troca de senha (exige currentPassword + newPassword). Contas Google (sem password no banco) não podem definir senha por aqui.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 2 },
+                  "currentPassword": {
+                    "type": "string",
+                    "description": "Obrigatório apenas se newPassword for enviado"
+                  },
+                  "newPassword": { "type": "string", "minLength": 6 }
+                }
+              },
+              "example": {
+                "name": "João Fabris Silva",
+                "currentPassword": "senhaAtual123",
+                "newPassword": "novaSenha456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil atualizado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "user": {
+                    "id": "clx1a2b3c4d5",
+                    "name": "João Fabris Silva",
+                    "email": "joao@email.com"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validação falhou, senha atual incorreta/ausente, ou conta Google tentando definir senha",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "examples": {
+                  "semSenhaAtual": {
+                    "value": { "error": "Senha atual é obrigatória" }
+                  },
+                  "senhaIncorreta": {
+                    "value": { "error": "Senha atual incorreta" }
+                  },
+                  "contaGoogle": {
+                    "value": {
+                      "error": "Conta Google não possui senha para alterar"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Não autorizado" }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuário não encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Usuário não encontrado" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat/recommend": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Recomendação de pratos via assistente de IA",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Envia uma mensagem ao assistente (Groq / LLaMA 3.3 70B), que busca pratos reais no cardápio (TheMealDB) e responde com recomendações personalizadas. **A resposta é um stream (`text/event-stream`), não um JSON único** — o cliente consome a resposta incrementalmente (Server-Sent Events), por isso não é totalmente testável pelo botão 'Try it out' do Swagger, que espera uma resposta completa.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "quero algo leve e vegetariano"
+                  },
+                  "history": {
+                    "type": "array",
+                    "description": "Histórico da conversa, opcional",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["user", "assistant"]
+                        },
+                        "content": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stream de texto (Server-Sent Events) com a resposta do assistente",
+            "content": {
+              "text/event-stream": { "schema": { "type": "string" } }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "example": { "error": "Não autorizado" }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro ao consultar a API do Groq, ou erro interno inesperado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SimpleError" },
+                "examples": {
+                  "groqError": { "value": { "error": "Erro na API do Groq" } },
+                  "genericError": {
+                    "value": { "error": "Erro interno do servidor" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
