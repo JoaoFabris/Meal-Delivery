@@ -6,48 +6,46 @@ O FoodApp é uma aplicação **full-stack monolítica** construída sobre o **Ne
 
 ```mermaid
 flowchart TB
-    subgraph Client["Navegador"]
-        UI["React Components<br/>(Client + Server Components)"]
-    end
+    classDef client fill:#3b4252,stroke:#88c0d0,color:#eceff4,stroke-width:1.5px
+    classDef server fill:#2e3440,stroke:#81a1c1,color:#eceff4,stroke-width:1.5px
+    classDef data fill:#2e3440,stroke:#a3be8c,color:#eceff4,stroke-width:1.5px
+    classDef ext fill:#2e3440,stroke:#d08770,color:#eceff4,stroke-width:1.5px
+
+    UI["React Components<br/>Client + Server"]:::client
 
     subgraph NextServer["Next.js App Router"]
-        Middleware["proxy.ts<br/>(middleware de rota)"]
-        Pages["Páginas<br/>(Server Components)"]
-        API["API Routes<br/>src/app/api/*"]
-        AuthMW["lib/middleware/auth.ts<br/>(requireAuth / requireAdmin)"]
-        ErrorH["lib/middleware/errorHandler.ts"]
+        direction TB
+        Middleware["proxy.ts<br/>middleware de rota"]:::server
+        Pages["Páginas<br/>Server Components"]:::server
+        API["API Routes<br/>app/api/*"]:::server
+        AuthMW["auth.ts<br/>requireAuth / requireAdmin"]:::server
+        ErrorH["errorHandler.ts"]:::server
     end
 
     subgraph DataLayer["Camada de Dados"]
-        Prisma["Prisma Client<br/>(lib/prisma.ts)"]
-        DB[("PostgreSQL")]
+        direction LR
+        Prisma["Prisma Client"]:::data
+        DB[("PostgreSQL")]:::data
     end
 
     subgraph External["Serviços Externos"]
-        MealDB["TheMealDB API<br/>(catálogo de pratos)"]
-        Google["Google OAuth"]
-        Resend["Resend<br/>(e-mail transacional)"]
-        Groq["Groq API<br/>(LLaMA 3.3 — chat de recomendação)"]
+        direction LR
+        MealDB["TheMealDB<br/>catálogo"]:::ext
+        Google["Google OAuth"]:::ext
+        Resend["Resend<br/>e-mail"]:::ext
+        Groq["Groq API<br/>LLaMA 3.3"]:::ext
     end
 
-    UI -->|"requisição HTTP"| Middleware
-    Middleware -->|"rota liberada"| Pages
-    Middleware -->|"rota liberada"| API
-    Pages -->|"fetch client-side"| API
-    API --> AuthMW
-    AuthMW --> ErrorH
-    ErrorH --> Prisma
-    Prisma --> DB
+    UI -->|requisição HTTP| Middleware
+    Middleware --> Pages
+    Middleware --> API
+    Pages -->|fetch client-side| API
+    API --> AuthMW --> ErrorH --> Prisma --> DB
 
-    Pages -.->|"cardápio"| MealDB
-    API -.->|"login social"| Google
-    API -.->|"reset de senha"| Resend
-    API -.->|"recomendação"| Groq
-
-    style Client fill:#fff3e0
-    style NextServer fill:#e3f2fd
-    style DataLayer fill:#e8f5e9
-    style External fill:#fce4ec
+    Pages -. cardápio .-> MealDB
+    API -. login social .-> Google
+    API -. reset senha .-> Resend
+    API -. recomendação .-> Groq
 ```
 
 ---
@@ -99,27 +97,39 @@ Essa decisão de arquitetura — **usar uma API pública de terceiros como fonte
 
 ```mermaid
 sequenceDiagram
+    autonumber
     participant U as Usuário
-    participant M as proxy.ts (middleware)
+    participant M as proxy.ts
     participant P as CartPageClient
-    participant A as actions.ts (Server Action)
-    participant Auth as NextAuth (auth())
+    participant A as actions.ts
+    participant Auth as NextAuth
     participant DB as Prisma / PostgreSQL
 
-    U->>M: Acessa /cart
-    M->>M: Verifica token de sessão
+    U->>M: GET /cart
+    activate M
+    M->>M: verifica token de sessão
+
     alt não autenticado
-        M-->>U: Redireciona para /login
+        M-->>U: redireciona /login
     else autenticado
-        M-->>P: Libera acesso à página
-        U->>P: Clica em "Finalizar pedido"
+        M-->>P: libera acesso à página
+        deactivate M
+        activate P
+        U->>P: clica "Finalizar pedido"
         P->>A: createOrder(items, total)
-        A->>Auth: auth() — confirma sessão
+        activate A
+        A->>Auth: auth()
+        activate Auth
         Auth-->>A: sessão válida
-        A->>DB: prisma.order.create({ items, total })
+        deactivate Auth
+        A->>DB: order.create({ items, total })
+        activate DB
         DB-->>A: pedido criado
-        A-->>P: retorna order
-        P-->>U: Redireciona para /cart/success
+        deactivate DB
+        A-->>P: order
+        deactivate A
+        P-->>U: redireciona /cart/success
+        deactivate P
     end
 ```
 
@@ -133,18 +143,21 @@ O sistema tem **duas estratégias de autenticação em paralelo**, cada uma serv
 
 ```mermaid
 flowchart LR
+    classDef web fill:#3b4252,stroke:#88c0d0,color:#eceff4,stroke-width:1.5px
+    classDef ext fill:#2e3440,stroke:#d08770,color:#eceff4,stroke-width:1.5px
+
     subgraph WebFlow["Uso via navegador (app web)"]
         direction TB
-        A1["Login (Google ou credentials)"] --> A2["NextAuth"]
-        A2 --> A3["Sessão via cookie JWT"]
-        A3 --> A4["Server Components leem<br/>sessão com auth()"]
+        A1["Login<br/>Google ou credentials"]:::web --> A2["NextAuth"]:::web
+        A2 --> A3["Sessão via cookie JWT"]:::web
+        A3 --> A4["Server Components leem<br/>sessão com auth()"]:::web
     end
 
     subgraph ApiFlow["Uso via API externa (Postman, integrações)"]
         direction TB
-        B1["POST /api/auth/login"] --> B2["JWT próprio<br/>(jsonwebtoken)"]
-        B2 --> B3["Cliente envia<br/>Authorization: Bearer"]
-        B3 --> B4["requireAuth() valida<br/>o token manualmente"]
+        B1["POST /api/auth/login"]:::ext --> B2["JWT próprio<br/>jsonwebtoken"]:::ext
+        B2 --> B3["Cliente envia<br/>Authorization: Bearer"]:::ext
+        B3 --> B4["requireAuth() valida<br/>o token manualmente"]:::ext
     end
 ```
 
