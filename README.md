@@ -535,3 +535,9 @@ Convenção baseada em [Conventional Commits](https://www.conventionalcommits.or
 | 🎞️ Slides da apresentação final                                | _(adicionar link)_                                                                                 |
 | 🎥 Vídeo de apresentação (até 10 min)                          | _(adicionar link)_                                                                                 |
 | ⚙️ Pipeline CI/CD                                              | [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions) |
+
+📖 Documentação técnica (manual do usuário, fluxos, diagramas) | [`/docs`](./docs) |
+| 🔌 Documentação da API (Swagger/OpenAPI) | [`/api-docs`](https://meal-delivery-eight.vercel.app/api-docs) |
+| 🎞️ Slides da apresentação final | [PDF](./PROJETO_DE_EXTENSÃO_III.pdf) _(ou o nome do arquivo que você anexar no repo)_ |
+| 🎥 Vídeo de apresentação (até 10 min) | [YouTube](https://youtu.be/Fabw1FO-yZA) |
+| ⚙️ Pipeline CI/CD | [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions)
