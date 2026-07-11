@@ -10,7 +10,11 @@
     }
   },
   "servers": [
-    { "url": "http://localhost:3000", "description": "Desenvolvimento local" }
+    { "url": "http://localhost:3000", "description": "Desenvolvimento local" },
+    {
+      "url": "https://meal-delivery-eight.vercel.app",
+      "description": "Produção (Vercel)"
+    }
   ],
   "tags": [
     { "name": "Auth", "description": "Registro, login e recuperação de senha" },
