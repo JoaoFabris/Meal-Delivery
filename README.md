@@ -1,6 +1,6 @@
 # 🍔 FoodApp
 
-Aplicação full-stack de pedidos de refeições desenvolvida como parte das **Atividades 2, 3 e 4 — PPE III**.
+Aplicação full-stack de pedidos de refeições desenvolvida de forma incremental nas disciplinas **Projetos e Práticas de Extensão I a IV** (Análise e Desenvolvimento de Sistemas), com entrega final na **PPE IV**.
 
 🌐 **Aplicação publicada:** https://meal-delivery-eight.vercel.app · 📡 **API (Swagger):** https://meal-delivery-eight.vercel.app/api-docs
 
