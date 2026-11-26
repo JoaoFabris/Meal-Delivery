@@ -49,8 +49,8 @@ export function OrderSummary() {
     }
 
     try {
-      await createOrder(items, total);
-      checkout();
+      const created = await createOrder(items, total);
+      checkout(created.id);
       router.push('/cart/success');
     } catch {
       toast.error('Erro ao finalizar pedido. Tente novamente.');
@@ -172,7 +172,7 @@ export function OrderSummary() {
         )}
 
         <p className="text-center text-xs text-[var(--color-text-muted)]">
-          🔒 Pagamento 100% seguro e criptografado
+          🔒 Conexão segura (HTTPS)
         </p>
       </div>
     </div>

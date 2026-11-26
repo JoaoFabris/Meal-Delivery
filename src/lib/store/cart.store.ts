@@ -10,7 +10,7 @@ interface CartStore {
   removeItem: (mealId: string) => void
   updateQuantity: (mealId: string, quantity: number) => void
   clearCart: () => void
-  checkout: () => Order
+  checkout: (serverOrderId?: string) => Order
 
   // Computed (helpers)
   totalItems: () => number
@@ -57,14 +57,15 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: () => set({ items: [] }),
 
-      checkout: () => {
+      checkout: (serverOrderId) => {
         const items = get().items
         const order: Order = {
-          id: crypto.randomUUID(),
+          // usa o ID real do pedido gravado no banco, para bater com "Meus pedidos" e o painel admin
+          id: serverOrderId ?? crypto.randomUUID(),
           items,
           total: get().totalPrice(),
           createdAt: new Date().toISOString(),
-          status: 'confirmed',
+          status: 'pending',
         }
         set({ orders: [...get().orders, order], items: [] })
         return order
