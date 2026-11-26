@@ -7,12 +7,12 @@ Este manual explica como usar o painel administrativo do FoodApp — a área res
 ## 1. Acessando o painel admin
 
 1. Acesse `/admin/login` (link também disponível na tela de login normal, em "É administrador? Acesse o painel admin").
-2. Entre com um e-mail cadastrado como administrador.
+2. Entre com uma conta cujo e-mail esteja em `ADMIN_EMAILS`. Pela página `/admin/login` o acesso é por Google ou GitHub; contas de e-mail/senha (como a `admin@foodapp.com` do seed) entram pelo `/login` normal e depois acessam `/admin`.
 3. Se sua conta não tiver permissão de admin, você será redirecionado de volta com uma mensagem de acesso não autorizado.
 
 <!-- screenshot: tela de login admin -->
 
-> **Como uma conta vira admin?** O papel (`role`) é definido no banco de dados (`ADMIN` ou `USER`) — não existe uma tela para "promover" um usuário a admin dentro do próprio app. Isso é feito diretamente no banco ou via seed inicial (`prisma/seed.ts`), que já cria uma conta admin de exemplo (veja credenciais no `README.md`).
+> **Como uma conta vira admin?** O acesso ao painel é liberado pela variável de ambiente `ADMIN_EMAILS` (lista de e-mails separados por vírgula), lida em `src/lib/auth.ts` e gravada no token de sessão como `isAdmin`. Para dar acesso a alguém, adicione o e-mail em `ADMIN_EMAILS` (no `.env` local ou em Vercel → Settings → Environment Variables), faça redeploy e peça para a pessoa sair e entrar de novo. O campo `role` da tabela `users` é preenchido pelo seed, mas não é o que libera o painel.
 
 ---
 

@@ -98,8 +98,15 @@ Problemas comuns ao instalar, rodar ou usar o FoodApp — e como resolver.
 
 ### Deploy automático no Vercel não dispara
 
-- Confirme que os secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` estão configurados em **Settings → Secrets → Actions** do repositório (ver `README.md`, seção CI/CD).
-- O deploy só roda no Job 3, que depende dos Jobs 1 e 2 (testes e build) terem passado, **e** apenas na branch `main`.
+- **Integração Git:** confira em Vercel → Project → Settings → Git se o repositório está conectado e se a branch de produção é `main`.
+- **Job 3 do GitHub Actions:** só roda na `main`, depois dos Jobs 1 e 2, e só executa os passos de deploy se `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` estiverem em **Settings → Secrets and variables → Actions**. Sem eles, o job mostra um aviso e não faz deploy (ver [`deploy.md`](./deploy.md)).
+
+### Site publicado abre, mas login, carrinho ou pedidos falham ("Erro interno do servidor")
+
+- **Causa mais comum:** o projeto do Supabase foi pausado por inatividade (plano gratuito pausa após 7 dias). Entre no painel do Supabase e clique em **Restore project**. O workflow `keep-alive.yml` existe para evitar isso.
+
+- O cardápio vem da TheMealDB, então a home funciona mesmo sem banco. Login, pedidos e favoritos precisam de `DATABASE_URL` e `DIRECT_URL` configuradas na Vercel e das migrations aplicadas (`npx prisma migrate deploy`). Veja [`deploy.md`](./deploy.md#4-banco-de-dados-em-produção).
+- Confira também `AUTH_SECRET`, `JWT_SECRET` e `NEXTAUTH_URL` (deve ser a URL de produção).
 
 ---
 

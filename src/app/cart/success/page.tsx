@@ -34,10 +34,10 @@ export default function SuccessPage() {
             {/* Mensagem */}
             <div className="space-y-2">
                 <h1 className="text-3xl font-black text-[var(--color-text-primary)]">
-                    Pedido confirmado! 🎉
+                    Pedido recebido! 🎉
                 </h1>
                 <p className="text-[var(--color-text-secondary)]">
-                    Seu pedido foi recebido e está sendo preparado com carinho.
+                    Seu pedido foi enviado ao restaurante. Acompanhe o status em Meus pedidos.
                 </p>
             </div>
 
@@ -65,15 +65,15 @@ export default function SuccessPage() {
                     </div>
 
                     <div className="flex justify-between font-bold pt-2 border-t border-[var(--color-border)]">
-                        <span>Total pago</span>
+                        <span>Total</span>
                         <span className="text-[var(--color-brand)]">
                             {formatPrice(lastOrder.total)}
                         </span>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] pt-1">
-                        <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        Status: Confirmado · Previsão 30–45 min
+                        <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                        Status: Pendente · aguardando confirmação do restaurante
                     </div>
                 </div>
             )}

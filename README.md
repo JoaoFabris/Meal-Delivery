@@ -2,9 +2,23 @@
 
 Aplicação full-stack de pedidos de refeições desenvolvida como parte das **Atividades 2, 3 e 4 — PPE III**.
 
+🌐 **Aplicação publicada:** https://meal-delivery-eight.vercel.app · 📡 **API (Swagger):** https://meal-delivery-eight.vercel.app/api-docs
+
 **O problema que resolve:** centraliza o processo de pedido de refeições — cardápio, carrinho, checkout, acompanhamento de status e gestão administrativa de pedidos — em um único fluxo web, com autenticação segura e uma API REST própria que pode ser consumida por outros clientes (mobile, integrações, etc).
 
 Combina uma interface web moderna com uma API RESTful completa, autenticação dupla (Google OAuth + e-mail/senha com JWT), banco de dados PostgreSQL via Prisma ORM, recuperação de senha por e-mail, controle de acesso por papel (USER / ADMIN), suíte de testes automatizados e pipeline de CI/CD com GitHub Actions.
+
+---
+
+## 📸 Telas
+
+| Página inicial | Detalhe do prato |
+| :---: | :---: |
+| ![Página inicial](./docs/img/home.png) | ![Detalhe do prato](./docs/img/detalhe-prato.png) |
+| **Carrinho** | **Perfil — meus pedidos** |
+| ![Carrinho](./docs/img/carrinho.png) | ![Perfil](./docs/img/perfil-pedidos.png) |
+| **Admin — lista de pedidos** | **Admin — atualizar status** |
+| ![Admin pedidos](./docs/img/admin-pedidos.png) | ![Admin status](./docs/img/admin-status.png) |
 
 ---
 
@@ -81,6 +95,7 @@ Crie um arquivo `.env` na raiz do projeto:
 ```env
 # Banco de dados
 DATABASE_URL="postgresql://postgres:SUA_SENHA@localhost:5432/foodapp"
+DIRECT_URL="postgresql://postgres:SUA_SENHA@localhost:5432/foodapp"  # conexão direta (migrations)
 
 # NextAuth — gere com: openssl rand -base64 32
 AUTH_SECRET="sua-chave-secreta-longa-e-aleatoria"
@@ -101,6 +116,9 @@ JWT_SECRET="sua-chave-jwt-longa-e-aleatoria"
 # E-mail transacional (opcional — sem isso o link é logado no terminal)
 RESEND_API_KEY="re_..."
 EMAIL_FROM="FoodApp <noreply@seudominio.com>"
+
+# Assistente de IA (opcional)
+GROQ_API_KEY="gsk_..."
 ```
 
 ### 3. Configure o banco de dados
@@ -186,7 +204,7 @@ src/__tests__/
 | Functions  | **96.5%** | 80% ✅         |
 | Lines      | **97.6%** | 80% ✅         |
 
-> **241 testes** | **18 suites** | **2 projetos** (backend + frontend)
+> **246 testes** | **19 suites** | **2 projetos** (backend + frontend)
 
 ### Estratégias utilizadas
 
@@ -212,7 +230,7 @@ Job 1 — Testes e Cobertura (~1m 20s)
     ├── Instala dependências (npm ci)
     ├── Gera Prisma Client
     ├── Aplica migrações no banco de teste
-    ├── Executa os 241 testes com cobertura
+    ├── Executa os 246 testes com cobertura
     └── Publica relatório de cobertura como artefato
             │
             ▼ (se passou)
@@ -222,23 +240,28 @@ Job 2 — Build da Aplicação (~1m)
     └── Executa npm run build
             │
             ▼ (se passou + branch main)
-Job 3 — Deploy Staging (Vercel)
-    └── Deploy automático via Vercel CLI
+Job 3 — Deploy Produção (Vercel)
+    ├── Aplica migrações no banco de produção (prisma migrate deploy)
+    └── vercel pull → vercel build --prod → vercel deploy --prebuilt --prod
 ```
+
+> Os passos do Job 3 só rodam se os secrets estiverem configurados; sem eles, o job emite um aviso e o pipeline continua verde. Em paralelo, a **integração Git da Vercel** publica automaticamente cada push na `main` (produção) e gera *Preview Deployments* para outras branches e PRs. Detalhes em [`docs/deploy.md`](./docs/deploy.md).
 
 ### Acompanhar o pipeline
 
 Acesse: [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions)
 
-### Configurar deploy no Vercel (opcional)
+### Configurar deploy via GitHub Actions (opcional)
 
-Para ativar o deploy automático, adicione os seguintes secrets no repositório em **Settings → Secrets → Actions**:
+Adicione os secrets em **Settings → Secrets and variables → Actions**:
 
-| Secret              | Como obter                               |
-| ------------------- | ---------------------------------------- |
-| `VERCEL_TOKEN`      | vercel.com → Account Settings → Tokens   |
-| `VERCEL_ORG_ID`     | `vercel env pull` ou dashboard do Vercel |
-| `VERCEL_PROJECT_ID` | `vercel env pull` ou dashboard do Vercel |
+| Secret              | Como obter                                              |
+| ------------------- | ------------------------------------------------------- |
+| `VERCEL_TOKEN`      | vercel.com → Account Settings → Tokens                  |
+| `VERCEL_ORG_ID`     | `.vercel/project.json` (gerado por `npx vercel link`)   |
+| `VERCEL_PROJECT_ID` | `.vercel/project.json` (gerado por `npx vercel link`)   |
+| `PROD_DATABASE_URL` | URL de conexão (pooled) do banco de produção            |
+| `PROD_DIRECT_URL`   | URL de conexão direta do banco de produção              |
 
 ---
 
@@ -288,6 +311,8 @@ POST /api/password/reset
 > Em desenvolvimento (sem `RESEND_API_KEY`), o link de recuperação é exibido no terminal.
 
 ### Credenciais do seed (para testes)
+
+Criadas pelo `npm run prisma:seed`. **Use apenas em desenvolvimento** — se o seed for rodado em produção, troque essas senhas ou trate-as como contas de demonstração.
 
 | Tipo  | E-mail            | Senha    |
 | ----- | ----------------- | -------- |
@@ -366,6 +391,8 @@ POST /api/password/reset
 
 **Status disponíveis:** `PENDING` → `CONFIRMED` → `PREPARING` → `DELIVERED` / `CANCELLED`
 
+> Transições validadas no servidor (`src/lib/orderStatus.ts`): o status só avança, `CANCELLED` só é possível antes da entrega, e `DELIVERED`/`CANCELLED` são finais. Tentativas inválidas retornam `400 VALIDATION_ERROR`.
+
 ---
 
 ### 👤 Users (Usuários)
@@ -422,6 +449,8 @@ users ──────────< orders >────────── ord
 | `20260426214930_password_opcional`        | `password` vira nullable                                                         |
 | `20260427195714_add_password_reset_token` | Tabela `password_reset_tokens`                                                   |
 | `20260427203117_add_nextauth_tables`      | Tabelas `accounts`, `sessions`, `verification_tokens` + campo `image` em `users` |
+| `20260618221041_remove_meal_fk_from_favorites` | Remove FK de `favorites.mealId` (pratos vêm da TheMealDB)                   |
+| `20260620162808_remove_meal_fk_from_order_items` | Remove FK de `order_items.mealId` (pratos vêm da TheMealDB)               |
 
 ---
 
@@ -475,7 +504,7 @@ Adicione no `.env`:
 GROQ_API_KEY=gsk_sua_chave_groq_aqui
 ```
 
-> A chave é obtida em [console.groq.com](https://console.groq.com). O nome da variável é `XAI_API_KEY` por compatibilidade com o código existente.
+> A chave é obtida em [console.groq.com](https://console.groq.com).
 
 ---
 
@@ -528,16 +557,17 @@ Convenção baseada em [Conventional Commits](https://www.conventionalcommits.or
 
 ## 📚 Documentação Adicional
 
-| Recurso                                                        | Link                                                                                               |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 📖 Documentação técnica (manual do usuário, fluxos, diagramas) | [`/docs`](./docs)                                                                                  |
-| 🔌 Documentação da API (Swagger/OpenAPI)                       | `/api-docs` (servidor rodando)                                                                     |
-| 🎞️ Slides da apresentação final                                | _(adicionar link)_                                                                                 |
-| 🎥 Vídeo de apresentação (até 10 min)                          | _(adicionar link)_                                                                                 |
-| ⚙️ Pipeline CI/CD                                              | [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions) |
-
-📖 Documentação técnica (manual do usuário, fluxos, diagramas) | [`/docs`](./docs) |
-| 🔌 Documentação da API (Swagger/OpenAPI) | [`/api-docs`](https://meal-delivery-eight.vercel.app/api-docs) |
-| 🎞️ Slides da apresentação final | [PDF](./PROJETO_DE_EXTENSÃO_III.pdf) _(ou o nome do arquivo que você anexar no repo)_ |
-| 🎥 Vídeo de apresentação (até 10 min) | [YouTube](https://youtu.be/Fabw1FO-yZA) |
-| ⚙️ Pipeline CI/CD | [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions)
+| Recurso                                   | Link                                                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 🌐 Aplicação publicada                    | https://meal-delivery-eight.vercel.app                                                             |
+| 🔌 Documentação da API (Swagger/OpenAPI)  | [`/api-docs`](https://meal-delivery-eight.vercel.app/api-docs)                                     |
+| 🏗️ Arquitetura                            | [`docs/arquitetura.md`](./docs/arquitetura.md)                                                     |
+| 🗄️ Modelo de dados                        | [`docs/modelo-de-dados.md`](./docs/modelo-de-dados.md)                                             |
+| 🔀 Fluxos de trabalho                     | [`docs/fluxos-de-trabalho.md`](./docs/fluxos-de-trabalho.md)                                       |
+| 🚀 Deploy                                 | [`docs/deploy.md`](./docs/deploy.md)                                                               |
+| 🛠️ Manual de manutenção                   | [`docs/manutencao.md`](./docs/manutencao.md)                                                       |
+| 👤 Manual do usuário                      | [`docs/manual-do-usuario.md`](./docs/manual-do-usuario.md)                                         |
+| 🔐 Manual do administrador                | [`docs/manual-do-admin.md`](./docs/manual-do-admin.md)                                             |
+| 🧯 Troubleshooting                        | [`docs/troubleshooting.md`](./docs/troubleshooting.md)                                             |
+| 🎥 Vídeo de apresentação                  | [YouTube](https://youtu.be/Fabw1FO-yZA)                                                            |
+| ⚙️ Pipeline CI/CD                         | [github.com/JoaoFabris/Meal-Delivery/actions](https://github.com/JoaoFabris/Meal-Delivery/actions) |

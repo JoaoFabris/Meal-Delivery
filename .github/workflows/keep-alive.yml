@@ -1,0 +1,23 @@
+name: Keep-alive do banco (Supabase)
+
+# O plano gratuito do Supabase pausa o projeto após 7 dias sem atividade.
+# Este workflow faz uma consulta leve à API a cada 3 dias para manter o banco ativo
+# e serve também como verificação simples de disponibilidade.
+on:
+  schedule:
+    - cron: '17 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping da API de produção
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET /api/meals (consulta o banco)
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" "https://meal-delivery-eight.vercel.app/api/meals?available=true")
+          echo "HTTP $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::API de produção respondeu $status — verifique a Vercel e o Supabase."
+            exit 1
+          fi
