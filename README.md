@@ -192,7 +192,7 @@ src/__tests__/
 | Functions  | **96.5%** | 80% ✅         |
 | Lines      | **97.6%** | 80% ✅         |
 
-> **241 testes** | **18 suites** | **2 projetos** (backend + frontend)
+> **246 testes** | **19 suites** | **2 projetos** (backend + frontend)
 
 ### Estratégias utilizadas
 
@@ -218,7 +218,7 @@ Job 1 — Testes e Cobertura (~1m 20s)
     ├── Instala dependências (npm ci)
     ├── Gera Prisma Client
     ├── Aplica migrações no banco de teste
-    ├── Executa os 241 testes com cobertura
+    ├── Executa os 246 testes com cobertura
     └── Publica relatório de cobertura como artefato
             │
             ▼ (se passou)
@@ -378,6 +378,8 @@ Criadas pelo `npm run prisma:seed`. **Use apenas em desenvolvimento** — se o s
 > USER vê apenas seus próprios pedidos. ADMIN vê todos.
 
 **Status disponíveis:** `PENDING` → `CONFIRMED` → `PREPARING` → `DELIVERED` / `CANCELLED`
+
+> Transições validadas no servidor (`src/lib/orderStatus.ts`): o status só avança, `CANCELLED` só é possível antes da entrega, e `DELIVERED`/`CANCELLED` são finais. Tentativas inválidas retornam `400 VALIDATION_ERROR`.
 
 ---
 

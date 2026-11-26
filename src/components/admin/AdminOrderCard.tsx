@@ -8,8 +8,8 @@ import { formatPrice } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { DbOrder, DbOrderItem } from '@/app/admin/orders/AdminOrdersClient'
+import { ALLOWED_TRANSITIONS, type OrderStatus } from '@/lib/orderStatus'
 
-type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'DELIVERED' | 'CANCELLED'
 
 const STATUS_CONFIG = {
     PENDING: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock },
@@ -144,7 +144,7 @@ export function AdminOrderCard({ order, onStatusUpdate }: AdminOrderCardProps) {
                     <div className="space-y-2">
                         <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">Atualizar status</p>
                         <div className="flex flex-wrap gap-2">
-                            {ACTIONS.filter(a => a.status !== currentStatus).map((action) => (
+                            {ACTIONS.filter(a => ALLOWED_TRANSITIONS[currentStatus]?.includes(a.status)).map((action) => (
                                 <button
                                     key={action.status}
                                     onClick={() => handleStatusUpdate(action.status)}
@@ -156,6 +156,9 @@ export function AdminOrderCard({ order, onStatusUpdate }: AdminOrderCardProps) {
                             ))}
                             {currentStatus === 'CANCELLED' && (
                                 <p className="text-xs text-[var(--color-text-muted)] self-center">Pedido cancelado — nenhuma ação disponível</p>
+                            )}
+                            {currentStatus === 'DELIVERED' && (
+                                <p className="text-xs text-[var(--color-text-muted)] self-center">Pedido entregue — status final</p>
                             )}
                         </div>
                     </div>
