@@ -50,7 +50,7 @@ Nunca edite uma migration que já foi aplicada em produção; crie uma nova.
 | O quê                  | Como                                                                 | Frequência |
 | ---------------------- | -------------------------------------------------------------------- | ---------- |
 | Código                 | Git + GitHub (histórico completo, branches protegidas)              | A cada push |
-| Banco (automático)     | Backup / restauração point-in-time do provedor gerenciado (Neon/Supabase) | Contínuo |
+| Banco (automático)     | Backups diários automáticos do Supabase (Database → Backups) | Contínuo |
 | Banco (manual)         | `pg_dump` (abaixo)                                                   | Semanal e antes de migrations |
 | Variáveis de ambiente  | Cópia segura (gerenciador de senhas) das variáveis da Vercel         | A cada alteração |
 | Artefatos de CI        | Relatório de cobertura (30 dias) e build (7 dias) no GitHub Actions  | A cada pipeline |
@@ -88,9 +88,9 @@ Todas as rotas da API passam pelo `errorHandler` central (`src/lib/middleware/er
 
 | O que monitorar             | Ferramenta                                                    |
 | --------------------------- | ------------------------------------------------------------- |
-| Disponibilidade do site     | Vercel (status dos deploys) + um monitor externo gratuito (ex.: UptimeRobot) apontando para a home |
+| Disponibilidade do site e do banco | Workflow `keep-alive.yml` (ping da API a cada 3 dias, falha notificada pelo GitHub) + status dos deploys na Vercel |
 | Erros e tempo de resposta das funções | Vercel → Observability                              |
-| Uso do banco (conexões, armazenamento) | Painel do provedor do banco (Neon/Supabase)        |
+| Uso do banco (conexões, armazenamento) | Painel do Supabase (Reports / Database)        |
 | Saúde do pipeline           | Aba Actions (falhas notificadas por e-mail pelo GitHub)       |
 | Dependências externas       | TheMealDB, Groq e Resend: se falharem, só a funcionalidade correspondente é afetada |
 | Limites do plano gratuito   | Vercel → Usage; painel da Groq (rate limit do chat)           |
@@ -101,10 +101,11 @@ Todas as rotas da API passam pelo `errorHandler` central (`src/lib/middleware/er
 
 1. **Reproduzir** — localmente (`npm run dev`) ou no Preview Deployment.
 2. **Investigar** — logs da Vercel, aba Actions, [`troubleshooting.md`](./troubleshooting.md).
-3. **Se produção estiver quebrada** — rollback imediato: Vercel → Deployments → último deploy estável → *Promote to Production*.
-4. **Corrigir** — branch `fix/<nome>`, com um teste que reproduz o bug.
-5. **Publicar** — PR → CI verde → merge na `main`.
-6. **Registrar** — se for um problema recorrente, documente em `troubleshooting.md`.
+3. **Erro 500 em login/pedidos?** Verifique se o projeto do Supabase está pausado (plano gratuito) e restaure-o.
+4. **Se produção estiver quebrada** — rollback imediato: Vercel → Deployments → último deploy estável → *Promote to Production*.
+5. **Corrigir** — branch `fix/<nome>`, com um teste que reproduz o bug.
+6. **Publicar** — PR → CI verde → merge na `main`.
+7. **Registrar** — se for um problema recorrente, documente em `troubleshooting.md`.
 
 ---
 

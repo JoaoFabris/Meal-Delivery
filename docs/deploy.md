@@ -25,7 +25,7 @@ flowchart LR
 | Plataforma              | **Vercel** (plano Hobby, gratuito)                                     |
 | Tipo de execução        | Serverless — páginas e rotas `app/api/*` viram Vercel Functions         |
 | Front-end estático      | Vercel Edge Network (CDN global)                                       |
-| Banco de dados          | PostgreSQL gerenciado em nuvem (ex.: Neon via Vercel Marketplace ou Supabase) |
+| Banco de dados          | **Supabase** (PostgreSQL gerenciado, plano gratuito)                   |
 | Versionamento           | GitHub                                                                 |
 | CI/CD                   | GitHub Actions (`.github/workflows/ci.yml`) + integração Git da Vercel |
 | Certificado HTTPS       | Automático (Vercel)                                                    |
@@ -94,20 +94,25 @@ Nenhum segredo fica no repositório: o `.gitignore` ignora todos os arquivos `.e
 
 ## 4. Banco de dados em produção
 
-O catálogo de pratos vem da API pública TheMealDB, então a home funciona mesmo sem banco. **Login, carrinho, pedidos, favoritos e painel admin dependem do PostgreSQL.**
+O banco de produção é um **PostgreSQL gerenciado no Supabase** (plano gratuito). O catálogo de pratos vem da API pública TheMealDB, então a home funciona mesmo sem banco, mas **login, carrinho, pedidos, favoritos e painel admin dependem do PostgreSQL**.
 
-Passo a passo para provisionar (exemplo com Neon, integrado à Vercel):
+| Variável na Vercel | Valor no Supabase (Project Settings → Database → Connection string) |
+| ------------------ | ------------------------------------------------------------------- |
+| `DATABASE_URL`     | *Transaction pooler* (porta 6543) com `?pgbouncer=true`              |
+| `DIRECT_URL`       | Conexão direta / *Session pooler* (porta 5432), usada nas migrations |
 
-1. Na Vercel: **Project → Storage → Create Database → Neon (Postgres)** → conectar ao projeto. As variáveis de conexão são criadas automaticamente.
-2. Em **Environment Variables**, garanta que `DATABASE_URL` aponta para a URL *pooled* e crie `DIRECT_URL` com o valor da URL *unpooled* (`DATABASE_URL_UNPOOLED`).
-3. Aplique o schema no banco novo, da sua máquina:
-   ```bash
-   DATABASE_URL="<url-pooled>" DIRECT_URL="<url-direta>" npx prisma migrate deploy
-   ```
-4. (Opcional) Crie os usuários de demonstração: `npm run prisma:seed` com as mesmas variáveis.
-5. Faça um *Redeploy* na Vercel para as funções lerem as novas variáveis.
+Para aplicar o schema num banco novo (da máquina local):
 
-Com Supabase o processo é o mesmo: `DATABASE_URL` = connection pooler (porta 6543, `?pgbouncer=true`), `DIRECT_URL` = conexão direta (porta 5432).
+```bash
+DATABASE_URL="<pooler>" DIRECT_URL="<direta>" npx prisma migrate deploy
+DATABASE_URL="<pooler>" DIRECT_URL="<direta>" npm run prisma:seed   # opcional: dados de demonstração
+```
+
+Depois, faça um *Redeploy* na Vercel se alguma variável tiver mudado.
+
+### Pausa automática do plano gratuito
+
+O Supabase gratuito **pausa o projeto após 7 dias sem atividade**; com o banco pausado, as rotas que usam o Prisma respondem `500`. Para evitar isso, o workflow `.github/workflows/keep-alive.yml` chama `GET /api/meals` (que consulta o banco) a cada 3 dias e falha se a API não responder `200`, servindo também como monitor simples de disponibilidade. Se o projeto pausar mesmo assim: Supabase → projeto → **Restore project**.
 
 ---
 
