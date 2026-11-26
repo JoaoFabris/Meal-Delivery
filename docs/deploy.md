@@ -1,0 +1,129 @@
+# Deploy da Aplicação
+
+Este documento descreve como o FoodApp é publicado em produção.
+
+**Aplicação publicada:** https://meal-delivery-eight.vercel.app
+
+---
+
+## 1. Visão geral
+
+```mermaid
+flowchart LR
+    Dev["Desenvolvedor"] -->|git push| GH["GitHub<br/>Meal-Delivery"]
+    GH --> CI["GitHub Actions<br/>Job 1: testes · Job 2: build"]
+    CI -->|main + secrets| CD["Job 3: deploy<br/>migrate + Vercel CLI"]
+    GH -. integração Git .-> V["Vercel<br/>build + hospedagem"]
+    CD --> V
+    V --> U["Usuário<br/>HTTPS"]
+    V --> DB[("PostgreSQL<br/>gerenciado")]
+    V --> EXT["TheMealDB · Google OAuth<br/>Resend · Groq"]
+```
+
+| Item                    | Escolha                                                                |
+| ----------------------- | ---------------------------------------------------------------------- |
+| Plataforma              | **Vercel** (plano Hobby, gratuito)                                     |
+| Tipo de execução        | Serverless — páginas e rotas `app/api/*` viram Vercel Functions         |
+| Front-end estático      | Vercel Edge Network (CDN global)                                       |
+| Banco de dados          | PostgreSQL gerenciado em nuvem (ex.: Neon via Vercel Marketplace ou Supabase) |
+| Versionamento           | GitHub                                                                 |
+| CI/CD                   | GitHub Actions (`.github/workflows/ci.yml`) + integração Git da Vercel |
+| Certificado HTTPS       | Automático (Vercel)                                                    |
+
+---
+
+## 2. Como o deploy acontece
+
+O projeto tem dois caminhos de deploy automatizado, que se complementam:
+
+1. **Integração Git da Vercel (padrão).** O repositório está conectado ao projeto na Vercel. Todo `push` na `main` gera um deploy de **produção**; todo push em outra branch ou PR gera um **Preview Deployment** com URL própria, usado para validar antes do merge.
+2. **Job 3 do GitHub Actions (`deploy`).** Roda apenas na `main`, **depois** que os testes (Job 1) e o build (Job 2) passaram. Ele:
+   - aplica as migrações do Prisma no banco de produção (`prisma migrate deploy`), se o secret `PROD_DATABASE_URL` existir;
+   - faz o build e o deploy de produção via Vercel CLI (`vercel pull` → `vercel build --prod` → `vercel deploy --prebuilt --prod`), se o secret `VERCEL_TOKEN` existir.
+
+   Se os secrets não estiverem configurados, os passos são pulados com um aviso e o pipeline continua verde.
+
+> Para que **só** código testado vá para produção, configure os secrets e desative o deploy automático da `main` na Vercel (**Project → Settings → Git → Ignored Build Step**). Assim o Job 3 passa a ser o único caminho até produção.
+
+### Secrets do GitHub Actions
+
+Em **Settings → Secrets and variables → Actions**:
+
+| Secret              | Onde obter                                                    |
+| ------------------- | ------------------------------------------------------------- |
+| `VERCEL_TOKEN`      | vercel.com → Account Settings → Tokens                        |
+| `VERCEL_ORG_ID`     | `.vercel/project.json` (gerado por `npx vercel link`)         |
+| `VERCEL_PROJECT_ID` | `.vercel/project.json` (gerado por `npx vercel link`)         |
+| `PROD_DATABASE_URL` | String de conexão (pooled) do banco de produção               |
+| `PROD_DIRECT_URL`   | String de conexão direta (non-pooled) do banco de produção    |
+
+---
+
+## 3. Configuração do ambiente na Vercel
+
+**Project → Settings → General**
+
+| Configuração     | Valor                                     |
+| ---------------- | ----------------------------------------- |
+| Framework        | Next.js (detectado automaticamente)       |
+| Build Command    | `npm run build` (`prisma generate && next build`) |
+| Node.js          | 20.x                                      |
+| Root Directory   | `./`                                      |
+
+**Project → Settings → Environment Variables** (ambiente *Production*):
+
+| Variável             | Obrigatória | Uso                                                        |
+| -------------------- | ----------- | ---------------------------------------------------------- |
+| `DATABASE_URL`       | Sim         | Conexão Prisma (pooled)                                    |
+| `DIRECT_URL`         | Sim         | Conexão direta, usada pelas migrações                      |
+| `AUTH_SECRET`        | Sim         | Assinatura da sessão NextAuth (`openssl rand -base64 32`)  |
+| `JWT_SECRET`         | Sim         | Assinatura do JWT da API REST                              |
+| `NEXTAUTH_URL`       | Sim         | `https://meal-delivery-eight.vercel.app`                   |
+| `ADMIN_EMAILS`       | Sim         | E-mails com acesso ao painel admin, separados por vírgula  |
+| `AUTH_GOOGLE_ID`     | Para login Google | OAuth Client ID (Google Cloud Console)               |
+| `AUTH_GOOGLE_SECRET` | Para login Google | OAuth Client Secret                                  |
+| `GROQ_API_KEY`       | Para o chat IA | Chave da Groq (assistente de recomendação)              |
+| `RESEND_API_KEY`     | Para e-mail | Envio do e-mail de recuperação de senha                    |
+| `EMAIL_FROM`         | Para e-mail | Remetente dos e-mails                                      |
+
+> No Google Cloud Console, a URL de callback autorizada precisa incluir `https://meal-delivery-eight.vercel.app/api/auth/callback/google`.
+
+Nenhum segredo fica no repositório: o `.gitignore` ignora todos os arquivos `.env*`.
+
+---
+
+## 4. Banco de dados em produção
+
+O catálogo de pratos vem da API pública TheMealDB, então a home funciona mesmo sem banco. **Login, carrinho, pedidos, favoritos e painel admin dependem do PostgreSQL.**
+
+Passo a passo para provisionar (exemplo com Neon, integrado à Vercel):
+
+1. Na Vercel: **Project → Storage → Create Database → Neon (Postgres)** → conectar ao projeto. As variáveis de conexão são criadas automaticamente.
+2. Em **Environment Variables**, garanta que `DATABASE_URL` aponta para a URL *pooled* e crie `DIRECT_URL` com o valor da URL *unpooled* (`DATABASE_URL_UNPOOLED`).
+3. Aplique o schema no banco novo, da sua máquina:
+   ```bash
+   DATABASE_URL="<url-pooled>" DIRECT_URL="<url-direta>" npx prisma migrate deploy
+   ```
+4. (Opcional) Crie os usuários de demonstração: `npm run prisma:seed` com as mesmas variáveis.
+5. Faça um *Redeploy* na Vercel para as funções lerem as novas variáveis.
+
+Com Supabase o processo é o mesmo: `DATABASE_URL` = connection pooler (porta 6543, `?pgbouncer=true`), `DIRECT_URL` = conexão direta (porta 5432).
+
+---
+
+## 5. Checklist pós-deploy
+
+- [ ] Home carrega o cardápio e as categorias
+- [ ] Cadastro e login por e-mail/senha funcionam
+- [ ] Login com Google funciona
+- [ ] Adicionar ao carrinho → finalizar pedido → pedido aparece no perfil
+- [ ] `/admin` acessível só para e-mails de `ADMIN_EMAILS`
+- [ ] Admin altera status do pedido e o usuário vê a alteração
+- [ ] `/api-docs` (Swagger) abre
+- [ ] Pipeline verde na aba **Actions**
+
+---
+
+## 6. Rollback
+
+Se um deploy quebrar produção: **Vercel → Deployments →** escolha o último deploy estável **→ ⋯ → Promote to Production** (ou *Instant Rollback*). A troca é imediata, sem novo build. Depois, corrija na `main` com um novo commit (ou `git revert`).
