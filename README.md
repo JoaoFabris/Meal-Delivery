@@ -10,6 +10,18 @@ Combina uma interface web moderna com uma API RESTful completa, autenticação d
 
 ---
 
+## 📸 Telas
+
+| Página inicial | Detalhe do prato |
+| :---: | :---: |
+| ![Página inicial](./docs/img/home.png) | ![Detalhe do prato](./docs/img/detalhe-prato.png) |
+| **Carrinho** | **Perfil — meus pedidos** |
+| ![Carrinho](./docs/img/carrinho.png) | ![Perfil](./docs/img/perfil-pedidos.png) |
+| **Admin — lista de pedidos** | **Admin — atualizar status** |
+| ![Admin pedidos](./docs/img/admin-pedidos.png) | ![Admin status](./docs/img/admin-status.png) |
+
+---
+
 ## 🏗️ Arquitetura
 
 O projeto segue o padrão em camadas integrado ao **Next.js App Router**:
